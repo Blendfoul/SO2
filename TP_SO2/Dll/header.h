@@ -42,6 +42,8 @@ typedef struct {
 extern "C" {
 	MAPPEDDLL_IMP_API BOOL TesteDLL();
 
+	MAPPEDDLL_IMP_API BOOL LoginSequence(PLAYER *client);
+
 	MAPPEDDLL_IMP_API BOOL ReadBuffer(PLAYER * client);
 	MAPPEDDLL_IMP_API BOOL WriteBuffer(PLAYER * client);
 
