@@ -1,0 +1,36 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {  
+            "label": "build",
+            "type": "shell",
+            "group": "build",
+            "windows": {
+                "command": "cd ${workspaceFolder}\\${input:directory} | mingw32-make.exe"
+            },
+              "problemMatcher": {
+                "owner": "cpp",
+                "fileLocation": [
+                    "relative",
+                    "${workspaceRoot}\\${input:directory}"
+                ],
+                "pattern": {
+                    "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+                    "file": 1,
+                    "line": 2,
+                    "column": 3,
+                    "severity": 4,
+                    "message": 5
+                }
+            },
+        }
+    ],
+    "inputs": [
+        {
+            "type": "pickString",
+            "id": "directory",
+            "description": "Nome da pasta a adicionar ao compilador",
+            "options": ["Client", "Server", "Dll"],
+            "default": ""
+        }],
+}

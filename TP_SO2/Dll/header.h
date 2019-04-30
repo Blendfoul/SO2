@@ -17,22 +17,12 @@
 #include <memory.h>
 
 
-typedef struct {
-	int id;
-	TCHAR username[20];
-	int in, out;
-} PLAYER;
-
-typedef struct {
-	int pos[60][2];
-	int id[60];	
-	int type[60];
-	int code[60];
-	int in, out;
-	int cont;
-	int gameState;
-	TCHAR username[60][20];
-} DATACLI;
+typedef struct
+    {
+        int id;
+        wchar_t username[20];
+        int in, out;
+    } PLAYER;
 
 #define BufferSize 100
 #define Buffers 10
@@ -46,7 +36,4 @@ extern "C" {
 
 	MAPPEDDLL_IMP_API BOOL ReadBuffer(PLAYER * client);
 	MAPPEDDLL_IMP_API BOOL WriteBuffer(PLAYER * client);
-
-	MAPPEDDLL_IMP_API BOOL ReadData(DATACLI * data);
-	MAPPEDDLL_IMP_API BOOL WriteData(DATACLI * data);
 }

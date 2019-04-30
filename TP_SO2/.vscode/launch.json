@@ -1,0 +1,35 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/${input:directory}/bin/main.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}",
+            "environment": [],
+            "externalConsole": true,
+            "preLaunchTask": "build",
+            "linux": {
+                "MIMode": "gdb"
+            },
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "windows": {
+                "MIMode": "gdb",
+                "miDebuggerPath": "gdb.exe"
+            },
+        }
+    ],
+    "inputs": [
+        {
+            "type": "pickString",
+            "id": "directory",
+            "description": "Nome da pasta a adicionar ao compilador",
+            "options": ["Client", "Server", "Dll"],
+            "default": ""
+        }],
+}
