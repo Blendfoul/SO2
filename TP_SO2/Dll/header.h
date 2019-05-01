@@ -16,24 +16,29 @@
 #include <stdio.h>
 #include <memory.h>
 
-
-typedef struct
-    {
-        int id;
-        wchar_t username[20];
-        int in, out;
-    } PLAYER;
-
 #define BufferSize 100
 #define Buffers 10
+#define MAX 20
+
+typedef struct
+{
+    int id;
+    int code;
+    wchar_t username[MAX];
+    int in, out;
+    int pos;
+    int score;
+} PLAYERS;
 
 // TODO: reference additional headers your program requires here
 
 extern "C" {
 	MAPPEDDLL_IMP_API BOOL TesteDLL();
 
-	MAPPEDDLL_IMP_API BOOL LoginSequence(PLAYER *client);
+	MAPPEDDLL_IMP_API BOOL Login(PLAYERS *client);
 
-	MAPPEDDLL_IMP_API BOOL ReadBuffer(PLAYER * client);
-	MAPPEDDLL_IMP_API BOOL WriteBuffer(PLAYER * client);
+	MAPPEDDLL_IMP_API BOOL RecieveMessage(PLAYERS * client);
+	MAPPEDDLL_IMP_API BOOL SendMessages(PLAYERS * client);
+
+    MAPPEDDLL_IMP_API BOOL RecieveBroadcast();
 }

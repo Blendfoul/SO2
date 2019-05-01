@@ -1,0 +1,7 @@
+﻿  MappedDLL.cpp
+c:\users\joao_\documents\so2\so2\tp_so2\dll\mappeddll.cpp(69): warning C4477: 'wscanf_s' : format string '%[^\n]' requires an argument of type 'wchar_t *', but variadic argument 1 has type 'int'
+  c:\users\joao_\documents\so2\so2\tp_so2\dll\mappeddll.cpp(69): note: this argument is used by a conversion specifier
+c:\users\joao_\documents\so2\so2\tp_so2\dll\mappeddll.cpp(69): warning C4477: 'wscanf_s' : format string '%[^\n]' requires an argument of type 'unsigned int', but variadic argument 2 has type 'wchar_t *'
+  c:\users\joao_\documents\so2\so2\tp_so2\dll\mappeddll.cpp(69): note: this argument is used as a buffer size
+     Creating library C:\Users\joao_\Documents\SO2\SO2\TP_SO2\Dll\x64\Debug\MappedDLL.lib and object C:\Users\joao_\Documents\SO2\SO2\TP_SO2\Dll\x64\Debug\MappedDLL.exp
+  MappedDLL.vcxproj -> C:\Users\joao_\Documents\SO2\SO2\TP_SO2\Dll\x64\Debug\MappedDLL.dll

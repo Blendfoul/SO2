@@ -3,16 +3,16 @@
 #include <windows.h>
 #include "header.h"
 
-PLAYER player, *pJogador;
+PLAYERS player, *pJogador;
 
 TCHAR (*PtrMemoria)
 [Buffers][BufferSize];
 TCHAR NomeSemaforoPodeEscrever[] = TEXT("Semaphore_1");
 TCHAR NomeSemaforoPodeLer[] = TEXT("Semaphore_2");
 
-HANDLE PodeEscrever, PodeLer, PodeEscreverBuffer, PodeLerBuffer;
+HANDLE PodeEscreverBuffer, PodeLerBuffer;
 HANDLE hMemoria, hBuffer;
-HANDLE mOut, mIn, mOutBuff, mInBuff;
+HANDLE mutex_1, mutex_2;
 
 BOOL TesteDLL()
 {
@@ -21,41 +21,45 @@ BOOL TesteDLL()
 	return true;
 }
 
-BOOL ReadBuffer(PLAYER *client)
+BOOL RecieveBroadcast(){
+	return true;
+}
+
+BOOL RecieveMessage(PLAYERS *client)
 {
 	int pos;
 
 	WaitForSingleObject(PodeLerBuffer, INFINITE);
-	WaitForSingleObject(mOutBuff, INFINITE);
+	WaitForSingleObject(mutex_1, INFINITE);
 
 	pos = pJogador->out;
 	pJogador->out = (pJogador->out + 1) % Buffers;
-	CopyMemory(client, pJogador, sizeof(PLAYER));
+	CopyMemory(client, pJogador, sizeof(PLAYERS));
 
-	ReleaseMutex(mOutBuff);
+	ReleaseMutex(mutex_1);
 	ReleaseSemaphore(PodeEscreverBuffer, 1, NULL);
 
 	return true;
 }
 
-BOOL WriteBuffer(PLAYER *client)
+BOOL SendMessages(PLAYERS *client)
 {
 	int pos;
 
 	WaitForSingleObject(PodeEscreverBuffer, INFINITE);
-	WaitForSingleObject(mInBuff, INFINITE);
+	WaitForSingleObject(mutex_2, INFINITE);
 
 	pos = pJogador->in;
 	pJogador->in = (pJogador->in + 1) % Buffers;
-	CopyMemory(pJogador, client, sizeof(PLAYER));
+	CopyMemory(pJogador, client, sizeof(PLAYERS));
 
-	ReleaseMutex(mInBuff);
+	ReleaseMutex(mutex_2);
 	ReleaseSemaphore(PodeLerBuffer, 1, NULL);
 
 	return true;
 }
 
-BOOL LoginSequence(PLAYER *client)
+BOOL Login(PLAYERS *client)
 {
 
 	int pos;
@@ -65,13 +69,13 @@ BOOL LoginSequence(PLAYER *client)
 	_tscanf_s(TEXT("%[^\n]s"), 19, client->username);
 
 	WaitForSingleObject(PodeEscreverBuffer, INFINITE);
-	WaitForSingleObject(mInBuff, INFINITE);
+	WaitForSingleObject(mutex_2, INFINITE);
 
 	pos = pJogador->in;
 	pJogador->in = (pJogador->in + 1) % Buffers;
-	CopyMemory(pJogador, client, sizeof(PLAYER));
+	CopyMemory(pJogador, client, sizeof(PLAYERS));
 
-	ReleaseMutex(mInBuff);
+	ReleaseMutex(mutex_2);
 	ReleaseSemaphore(PodeEscreverBuffer, 1, NULL);
 
 	return true;

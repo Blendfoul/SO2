@@ -1,6 +1,5 @@
 #define _UNICODE
 
-
 #include "Server.h"
 #include "../../Dll/header.h"
 
@@ -13,14 +12,15 @@ int _tmain(int argc, LPSTR argv[])
     _setmode(_fileno(stdout), _O_WTEXT);
 #endif
 
-    wstring strLocal;
     nPlayers = 0;
+    LIVE = true;
+    DWORD threadID;
 
     hMutex = CreateMutex(NULL, FALSE, TEXT("Mutex_1"));
     hCanWrite = CreateSemaphore(NULL, BUFFERS, BUFFERS, TEXT("Semaphore_1"));
     hCanRead = CreateSemaphore(NULL, 0, BUFFERS, TEXT("Semaphore_2"));
     hFile = CreateFile(NULL, GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
-    hMem = CreateFileMapping(hFile, NULL, PAGE_READWRITE, 0, sizeof(PLAYER), NULL);
+    hMem = CreateFileMapping(hFile, NULL, PAGE_READWRITE, 0, sizeof(PLAYERS), NULL);
 
     if (hCanWrite == NULL || hCanRead == NULL || hMem == NULL)
     {
@@ -42,11 +42,22 @@ int _tmain(int argc, LPSTR argv[])
         return EXIT_FAILURE;
     }
 
-    hCons = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ServerInput, NULL, 0, NULL);
+    hCons = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ServerInput, NULL, 0, &threadID);
+    if (hCons != NULL)
+        _tprintf(TEXT("Lancei uma thread com id %d"), threadID);
+    else
+    {
+        _tprintf(TEXT("Erro ao criar Thread\n"));
+        return -1;
+    }
 
     WaitForSingleObject(hCons, INFINITE);
+    WaitForSingleObject(hLogin, INFINITE);
 
     UnmapViewOfFile(pBuf);
+
+    CloseHandle(hLogin);
+    CloseHandle(hCons);
     CloseHandle(hCanRead);
     CloseHandle(hCanWrite);
     CloseHandle(hMem);
@@ -58,38 +69,77 @@ int _tmain(int argc, LPSTR argv[])
 
 DWORD WINAPI ServerInput()
 {
-    wstring cmd;
-    do
+    PLAYERS pAction;
+
+    while (LIVE)
     {
-        fflush(stdin);
-
-        wcout << TEXT("Input -> ");
-        getline(wcin, cmd);
-
-        if (cmd == TEXT("exit"))
-        {
-            LIVE = false;
-            break;
-        }
-
-    } while (true);
+        RecieveMessage(&pAction);
+        HandleAction(pAction);
+    };
 
     return 0;
 }
 
 //TODO: Comunicação servidor-cliente
 
-//TODO: Logins
+BOOL HandleAction(PLAYERS pAction){
+    BOOL validID = getPlayerId(pAction.id);
+    BOOL validUsername = getPlayerUsername(pAction.username);
 
-DWORD WINAPI LoginHandler(){
+    if(!validID && !validUsername && !gameOn && nPlayers < MAX_PLAYERS){
+        AddPlayerToArray(pAction.id, pAction.username);
+        nPlayers++;
+    }
+    else if(validID && validUsername && !gameOn && nPlayers >= MAX_PLAYERS){
+        DenyPlayerAcess();
+    }
 
-    do{
-
-
-    
-    }while(LIVE == true);
-
-    return 0;
+    BuildBroadcast();
 }
 
+//TODO: Adicionar Jogador ao Array de jogadores
+
+BOOL AddPlayerToArray(int PlayerId, wchar_t * username) {
+	players[nPlayers].id = PlayerId;
+    _tcscpy(players[nPlayers].username, username);
+	players[nPlayers].score = 0;
+    players[nPlayers].code = USRVALID;
+
+	return true;
+}
+
+int getPlayerId(int pid) {
+	for (int i = 0; i < nPlayers; i++) {
+		if (players[i].id == pid)
+			return 1;
+	}
+	return 0;
+}
+
+int getPlayerUsername(TCHAR * nome) {
+	for (int i = 0; i < nPlayers; i++) {
+		if (_tcscmp(players[i].username, nome) == 0)
+			return 1;
+	}
+	return 0;
+}
+
+//TODO: Negar acesso a um jogador
+
+BOOL DenyPlayerAcess(){
+
+}
+
+//TODO: Envio de Broadcast
+
+BOOL BuildBroadcast(){
+
+}
+
+
+
 //TODO: Lógica Jogo
+
+DWORD BallMovement(){
+
+}
