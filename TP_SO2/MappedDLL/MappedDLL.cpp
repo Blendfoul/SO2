@@ -3,21 +3,19 @@
 #include <windows.h>
 #include "header.h"
 
-PLAYERS player, *pJogador;
+PLAYERS player, *pShared;
 
-TCHAR (*PtrMemoria)
-[Buffers][BufferSize];
 TCHAR NomeSemaforoPodeEscrever[] = TEXT("Semaphore_1");
 TCHAR NomeSemaforoPodeLer[] = TEXT("Semaphore_2");
 
 HANDLE PodeEscreverBuffer, PodeLerBuffer;
-HANDLE hMemoria, hBuffer;
+HANDLE hMem, hFile;
 HANDLE mutex_1, mutex_2;
 
-BOOL TesteDLL()
+BOOL TesteDLL(PLAYERS *client)
 {
 	printf("TesteServer");
-	printf("\nIN: %d\n", pJogador->in);
+	printf("\nIN: %d\n", client->id);
 	return true;
 }
 
@@ -49,9 +47,9 @@ BOOL SendMessages(PLAYERS *client)
 	WaitForSingleObject(PodeEscreverBuffer, INFINITE);
 	WaitForSingleObject(mutex_2, INFINITE);
 
-	pos = pJogador->in;
-	pJogador->in = (pJogador->in + 1) % Buffers;
-	CopyMemory(pJogador, client, sizeof(PLAYERS));
+	pos = client->in;
+	client->in = (client->in + 1) % Buffers;
+	CopyMemory(client, client, sizeof(PLAYERS));
 
 	ReleaseMutex(mutex_2);
 	ReleaseSemaphore(PodeLerBuffer, 1, NULL);
@@ -61,7 +59,11 @@ BOOL SendMessages(PLAYERS *client)
 
 BOOL Login(PLAYERS *client)
 {
+	hFile = CreateFile(NULL, GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
+	hMem = CreateFileMapping(hFile, NULL, PAGE_READWRITE, 0, sizeof(PLAYERS), NULL);
 
+	pShared = (PLAYERS *)MapViewOfFile(hMem, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(PLAYERS));
+		
 	int pos;
 
 	client->id = GetCurrentProcessId();
@@ -71,9 +73,9 @@ BOOL Login(PLAYERS *client)
 	WaitForSingleObject(PodeEscreverBuffer, INFINITE);
 	WaitForSingleObject(mutex_2, INFINITE);
 
-	pos = pJogador->in;
-	pJogador->in = (pJogador->in + 1) % Buffers;
-	CopyMemory(pJogador, client, sizeof(PLAYERS));
+	pos = client->in;
+	client->in = (client->in + 1) % Buffers;
+	CopyMemory(pShared, client, sizeof(PLAYERS));
 
 	ReleaseMutex(mutex_2);
 	ReleaseSemaphore(PodeEscreverBuffer, 1, NULL);

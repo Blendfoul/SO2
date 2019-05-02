@@ -10,7 +10,7 @@
 #include <time.h>
 #include "../MappedDll/header.h"
 
-#define MAX 20
+#define MAXT 256
 #define BUFFERS 10
 #define MAX_PLAYERS 20
 #define USRVALID 1
@@ -35,4 +35,6 @@ int getPlayerId(int pid);
 int getPlayerUsername(TCHAR * nome);
 BOOL DenyPlayerAcess();
 BOOL BuildBroadcast();
-DWORD BallMovement();
+DWORD WINAPI BallMovement();
+
+void SaveTopTen();

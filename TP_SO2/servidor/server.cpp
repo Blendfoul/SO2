@@ -9,7 +9,7 @@ int _tmain(int argc, TCHAR * argv[])
     _setmode(_fileno(stdout), _O_WTEXT);
 #endif
 
-    nPlayers = 0;
+	nPlayers = 0;
     DWORD threadID;
 
     hMutex = CreateMutex(NULL, FALSE, TEXT("Mutex_1"));
@@ -25,7 +25,7 @@ int _tmain(int argc, TCHAR * argv[])
         return EXIT_FAILURE;
     }
 
-    pBuf = (PLAYERS *)MapViewOfFile(hMem, FILE_MAP_WRITE, 0, 0, sizeof(PLAYERS));
+    pBuf = (PLAYERS *)MapViewOfFile(hMem, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(PLAYERS));
 
     if (pBuf == NULL)
     {
@@ -58,7 +58,10 @@ int _tmain(int argc, TCHAR * argv[])
     CloseHandle(hCanWrite);
     CloseHandle(hMem);
     CloseHandle(hFile);
-    return EXIT_SUCCESS;
+
+	SaveTopTen();
+	
+	return EXIT_SUCCESS;
 }
 
 //TODO: Implementar consola para o servidor
@@ -124,6 +127,7 @@ int getPlayerUsername(TCHAR * nome) {
 //TODO: Negar acesso a um jogador
 
 BOOL DenyPlayerAcess(){
+
     return true;
 }
 
@@ -137,7 +141,41 @@ BOOL BuildBroadcast(){
 
 //TODO: Lógica Jogo
 
-DWORD BallMovement(){
+DWORD WINAPI BallMovement(){
     
     return 0;
 }
+
+//TODO: Top 10
+
+void SaveTopTen() {
+	int iResult, iNpreenchidos = 10, iSize, iValues, values[10] = { 0,10,20,30,40,50,60,70,80,90};
+	HKEY hkChave;
+	TCHAR nome[10][MAXT] = { TEXT("User 1"), TEXT("User 2"), TEXT("User 3"), TEXT("User 4"), TEXT("User 5"), TEXT("User 6"), TEXT("User 7"), TEXT("User 8"), TEXT("User 9"), TEXT("User 10") };
+	TCHAR nomeAutor[MAXT];
+	TCHAR tp[10][MAXT] = { TEXT("T1"), TEXT("T2"), TEXT("T3") , TEXT("T4") , TEXT("T5") , TEXT("T6") , TEXT("T7") , TEXT("T8") , TEXT("T9") , TEXT("T10") };
+
+	if (RegCreateKeyEx(HKEY_CURRENT_USER, TEXT("Software\\Arkanoid"), 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hkChave, (LPDWORD)&iResult) == ERROR_SUCCESS) {
+		if (iResult == REG_CREATED_NEW_KEY) {
+			_tprintf(TEXT("Chave criada com sucesso!"));
+			//!Cria a nova chave do registro com os dados especificados
+			for (int i = 0; i < iNpreenchidos; i++) {
+				RegSetValueEx(hkChave, tp[i], 0, REG_SZ, (LPBYTE)&nome[i], (MAXT * sizeof(TCHAR)));
+				RegSetValueEx(hkChave, nome[i], 0, REG_BINARY, (LPBYTE)&values[i], sizeof(int));
+			}
+			}
+		else {
+			for (int i = 0; i < iNpreenchidos; i++)
+			{
+				iSize = MAXT * sizeof(TCHAR);
+				RegQueryValueEx(hkChave, tp[i], NULL, NULL, (LPBYTE)&nomeAutor, (LPDWORD)&iSize);
+					iSize = sizeof(int);
+				RegQueryValueEx(hkChave, nome[i], NULL, NULL, (LPBYTE)&iValues, (LPDWORD)&iSize);
+
+				_tprintf(__T("Top %d -> Autor: %s Pontuação: %d\n"), i + 1,nomeAutor, iValues);
+			}
+		}
+		RegCloseKey(hkChave);
+	}
+}
+

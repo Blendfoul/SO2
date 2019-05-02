@@ -30,6 +30,21 @@ typedef struct
     int score;
 } PLAYERS;
 
+typedef struct
+{
+	int x, y;
+	int id;
+}BALL;
+
+typedef struct
+{
+	int in, out;
+	BALL ball;
+	
+}GAMEDATA;
+
+
+
 // TODO: reference additional headers your program requires here
 
 extern "C" {
