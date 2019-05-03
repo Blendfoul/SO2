@@ -22,19 +22,21 @@ BOOL LIVE;
 BOOL gameOn;
 PLAYERS players[MAX_PLAYERS];
 HANDLE hCanWrite, hCanRead, hMem, hFile;
-HANDLE hMutex;
+HANDLE hMutex, hMutexCanWrite;
 HANDLE hCons;
 HANDLE hLogin;
-PLAYERS *pBuf = NULL;
+SHAREDMEM *pBuf = NULL;
 
 //Function prototype
 DWORD WINAPI ServerInput();
-BOOL HandleAction(PLAYERS pAction);
-BOOL AddPlayerToArray(int PlayerId, TCHAR * username);
+SHAREDMEM RecieveRequest();
+BOOL HandleAction(SHAREDMEM pAction);
+PLAYERS AddPlayerToArray(PLAYERS pAction);
 int getPlayerId(int pid);
 int getPlayerUsername(TCHAR * nome);
 BOOL DenyPlayerAcess();
-BOOL BuildBroadcast();
+BOOL BuildBroadcast(SHAREDMEM *pAction);
 DWORD WINAPI BallMovement();
 
 void SaveTopTen();
+void loadTopTen();

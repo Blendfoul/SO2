@@ -14,21 +14,27 @@
 #include <windows.h>
 #include <tchar.h>
 #include <stdio.h>
+#include <string.h>
 #include <memory.h>
 
 #define BufferSize 100
 #define Buffers 10
-#define MAX 20
+#define MAX 256
 
 typedef struct
 {
     int id;
     int code;
     TCHAR username[MAX];
-    int in, out;
+	TCHAR command[MAX];
     int pos;
     int score;
 } PLAYERS;
+
+typedef struct {
+	int in, out;
+	PLAYERS	players[10];
+}SHAREDMEM;
 
 typedef struct
 {
@@ -43,17 +49,13 @@ typedef struct
 	
 }GAMEDATA;
 
-
-
 // TODO: reference additional headers your program requires here
 
-extern "C" {
 	MAPPEDDLL_IMP_API BOOL TesteDLL();
 
-	MAPPEDDLL_IMP_API BOOL Login(PLAYERS *client);
+	MAPPEDDLL_IMP_API BOOL Login(SHAREDMEM *client);
 
 	MAPPEDDLL_IMP_API BOOL RecieveMessage(PLAYERS * client);
 	MAPPEDDLL_IMP_API BOOL SendMessages(PLAYERS * client);
 
-    MAPPEDDLL_IMP_API BOOL RecieveBroadcast();
-}
+	MAPPEDDLL_IMP_API BOOL RecieveBroadcast();

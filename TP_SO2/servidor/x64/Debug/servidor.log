@@ -1,2 +1,4 @@
 ﻿  server.cpp
+c:\users\joao_\documents\so2\so2\tp_so2\servidor\server.cpp(236): warning C4477: 'wprintf' : format string '%d' requires an argument of type 'int', but variadic argument 3 has type 'int *'
+c:\users\joao_\documents\so2\so2\tp_so2\servidor\server.cpp(236): warning C4313: 'wprintf': '%d' in format string conflicts with argument 3 of type 'int *'
   servidor.vcxproj -> C:\Users\joao_\Documents\SO2\SO2\TP_SO2\servidor\x64\Debug\servidor.exe

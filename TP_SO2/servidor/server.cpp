@@ -7,16 +7,32 @@ int _tmain(int argc, TCHAR *argv[])
 #ifdef UNICODE
     _setmode(_fileno(stdin), _O_WTEXT);
     _setmode(_fileno(stdout), _O_WTEXT);
+    _setmode(_fileno(stderr), _O_WTEXT);
 #endif
 
     nPlayers = 0;
     DWORD threadID;
 
-    hMutex = CreateMutex(NULL, FALSE, TEXT("Mutex_1"));
+    hMutex = OpenMutex(MUTEX_ALL_ACCESS, false, TEXT("Mutex_1"));
+
+    if (hMutex == NULL)
+    {
+        // no duplicate instances found
+        hMutex = CreateMutex(NULL, FALSE, TEXT("Mutex_1"));
+    }
+    else
+    {
+        _tprintf(TEXT("There is an instance of the server already running. Closing server..."));
+
+        _gettchar();
+
+        return EXIT_FAILURE;
+    }
+	hMutexCanWrite = CreateMutex(NULL, FALSE, TEXT("Mutex_2"));
     hCanWrite = CreateSemaphore(NULL, BUFFERS, BUFFERS, TEXT("Semaphore_1"));
     hCanRead = CreateSemaphore(NULL, 0, BUFFERS, TEXT("Semaphore_2"));
     hFile = CreateFile(NULL, GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
-    hMem = CreateFileMapping(hFile, NULL, PAGE_READWRITE, 0, sizeof(PLAYERS), NULL);
+    hMem = CreateFileMapping(hFile, NULL, PAGE_READWRITE, 0, sizeof(SHAREDMEM), TEXT("Shared_1"));
 
     if (hCanWrite == NULL || hCanRead == NULL || hMem == NULL)
     {
@@ -25,7 +41,7 @@ int _tmain(int argc, TCHAR *argv[])
         return EXIT_FAILURE;
     }
 
-    pBuf = (PLAYERS *)MapViewOfFile(hMem, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(PLAYERS));
+    pBuf = (SHAREDMEM *)MapViewOfFile(hMem, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(SHAREDMEM));
 
     if (pBuf == NULL)
     {
@@ -41,7 +57,7 @@ int _tmain(int argc, TCHAR *argv[])
     hCons = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ServerInput, NULL, 0, &threadID);
 
     if (hCons != NULL)
-        _tprintf(TEXT("Lancei uma thread com id %d"), threadID);
+        _tprintf(TEXT("Lancei uma thread com id %d\n"), threadID);
     else
     {
         _tprintf(TEXT("Erro ao criar Thread\n"));
@@ -58,8 +74,11 @@ int _tmain(int argc, TCHAR *argv[])
     CloseHandle(hCanWrite);
     CloseHandle(hMem);
     CloseHandle(hFile);
+	CloseHandle(hMutex);
+	CloseHandle(hMutexCanWrite);
 
     SaveTopTen();
+	loadTopTen();
 
     return EXIT_SUCCESS;
 }
@@ -68,11 +87,11 @@ int _tmain(int argc, TCHAR *argv[])
 
 DWORD WINAPI ServerInput()
 {
-    PLAYERS pAction;
+	SHAREDMEM pAction;
 
     while (1)
     {
-        RecieveMessage(&pAction);
+        pAction = RecieveRequest();
         HandleAction(pAction);
     };
 
@@ -81,35 +100,51 @@ DWORD WINAPI ServerInput()
 
 //TODO: Comunicação servidor-cliente
 
-BOOL HandleAction(PLAYERS pAction)
+BOOL HandleAction(SHAREDMEM pAction)
 {
-    BOOL validID = getPlayerId(pAction.id);
-    BOOL validUsername = getPlayerUsername(pAction.username);
+    BOOL validID = getPlayerId(pAction.players[pAction.out].id);
+    BOOL validUsername = getPlayerUsername(pAction.players[pAction.out].username);
 
     if (!validID && !validUsername && !gameOn && nPlayers < MAX_PLAYERS)
     {
-        AddPlayerToArray(pAction.id, pAction.username);
+		pAction.players[pAction.out] = AddPlayerToArray(pAction.players[pAction.out]);
         nPlayers++;
     }
-    else if (validID && validUsername && !gameOn && nPlayers >= MAX_PLAYERS)
+    else if (!validID && !validUsername && nPlayers >= MAX_PLAYERS)
     {
         DenyPlayerAcess();
     }
+	else if(validID && validUsername && _tcscmp(pAction.players[pAction.out].command, TEXT("top10")))
+		loadTopTen();
 
-    BuildBroadcast();
+    BuildBroadcast(&pAction);
     return true;
+}
+
+SHAREDMEM RecieveRequest() {
+	SHAREDMEM pAction;
+	_tprintf(TEXT("Waiting for connection or requests\n"));
+	WaitForSingleObject(hCanRead, INFINITE);
+	WaitForSingleObject(hMutex, INFINITE);
+	
+	pAction = *pBuf;
+	
+	ReleaseMutex(hMutex);
+	ReleaseSemaphore(hCanWrite, 1, NULL);
+	
+	_tprintf(TEXT("Client or request request received from %s %d!\n"), pAction.players[pAction.out].username, pAction.players[pAction.out].id);
+	return pAction;
 }
 
 //TODO: Adicionar Jogador ao Array de jogadores
 
-BOOL AddPlayerToArray(int PlayerId, TCHAR *username)
+PLAYERS AddPlayerToArray(PLAYERS pAction)
 {
-    players[nPlayers].id = PlayerId;
-    _tcscpy_s(players[nPlayers].username, sizeof(players[nPlayers].username), username);
-    players[nPlayers].score = 0;
-    players[nPlayers].code = USRVALID;
+    pAction.score = 0;
+    pAction.code = USRVALID;
+	players[nPlayers] = pAction;
     _tprintf(TEXT("Sucess\n"));
-    return true;
+    return pAction;
 }
 
 int getPlayerId(int pid)
@@ -142,8 +177,17 @@ BOOL DenyPlayerAcess()
 
 //TODO: Envio de Broadcast
 
-BOOL BuildBroadcast()
-{
+BOOL BuildBroadcast(SHAREDMEM * pAction)
+{	
+	WaitForSingleObject(hCanWrite, INFINITE);
+	WaitForSingleObject(hMutexCanWrite, INFINITE);
+
+	pAction->in = (pAction->in + 1);
+	CopyMemory(pBuf, pAction, sizeof(SHAREDMEM));
+
+	ReleaseMutex(hMutexCanWrite);
+	ReleaseSemaphore(hCanRead, nPlayers, NULL);
+
     return true;
 }
 
@@ -159,10 +203,9 @@ DWORD WINAPI BallMovement()
 
 void SaveTopTen()
 {
-    int iResult, iNpreenchidos = 10, iSize, iValues, values[10] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90};
+    int iResult, iNpreenchidos = 10, values[10] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90};
     HKEY hkChave;
     TCHAR nome[10][MAXT] = {TEXT("User 1"), TEXT("User 2"), TEXT("User 3"), TEXT("User 4"), TEXT("User 5"), TEXT("User 6"), TEXT("User 7"), TEXT("User 8"), TEXT("User 9"), TEXT("User 10")};
-    TCHAR nomeAutor[MAXT];
     TCHAR tp[10][MAXT] = {TEXT("T1"), TEXT("T2"), TEXT("T3"), TEXT("T4"), TEXT("T5"), TEXT("T6"), TEXT("T7"), TEXT("T8"), TEXT("T9"), TEXT("T10")};
 
     if (RegCreateKeyEx(HKEY_CURRENT_USER, TEXT("Software\\Arkanoid"), 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hkChave, (LPDWORD)&iResult) == ERROR_SUCCESS)
@@ -177,18 +220,32 @@ void SaveTopTen()
                 RegSetValueEx(hkChave, nome[i], 0, REG_BINARY, (LPBYTE)&values[i], sizeof(int));
             }
         }
-        else if (iResult == REG_OPENED_EXISTING_KEY)
-        {
-            for (int i = 0; i < iNpreenchidos; i++)
-            {
-                iSize = MAXT * sizeof(TCHAR);
-                RegQueryValueEx(hkChave, tp[i], NULL, NULL, (LPBYTE)&nomeAutor, (LPDWORD)&iSize);
-                iSize = sizeof(int);
-                RegQueryValueEx(hkChave, nome[i], NULL, NULL, (LPBYTE)&iValues, (LPDWORD)&iSize);
-
-                _tprintf(__T("Top %d -> Autor: %s Pontuação: %d\n"), i + 1, nomeAutor, iValues);
-            }
-        }
         RegCloseKey(hkChave);
     }
+}
+
+void loadTopTen()
+{
+    int iResult, iSize, iValues[10], iNpreenchidos = 10;
+    TCHAR nomeAutor[MAXT];
+	TCHAR tp[10][MAXT] = { TEXT("T1"), TEXT("T2"), TEXT("T3"), TEXT("T4"), TEXT("T5"), TEXT("T6"), TEXT("T7"), TEXT("T8"), TEXT("T9"), TEXT("T10") };
+	TCHAR nome[10][MAXT] = { TEXT("User 1"), TEXT("User 2"), TEXT("User 3"), TEXT("User 4"), TEXT("User 5"), TEXT("User 6"), TEXT("User 7"), TEXT("User 8"), TEXT("User 9"), TEXT("User 10") };
+    HKEY hkChave;
+
+	if (RegCreateKeyEx(HKEY_CURRENT_USER, TEXT("Software\\Arkanoid"), 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hkChave, (LPDWORD)&iResult) == ERROR_SUCCESS)
+	{
+		if (iResult == REG_OPENED_EXISTING_KEY)
+		{
+			for (int i = 0; i < iNpreenchidos; i++)
+			{
+				iSize = MAXT * sizeof(TCHAR);
+				RegQueryValueEx(hkChave, tp[i], NULL, NULL, (LPBYTE)&nomeAutor, (LPDWORD)&iSize);
+				iSize = sizeof(int);
+				RegQueryValueEx(hkChave, nome[i], NULL, NULL, (LPBYTE)&iValues, (LPDWORD)&iSize);
+
+				_tprintf(__T("Top %d -> Autor: %s Pontuação: %d\n"), i + 1, nomeAutor, iValues);
+			}
+		}
+	}
+    RegCloseKey(hkChave);
 }
