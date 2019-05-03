@@ -3,7 +3,8 @@
 #include <windows.h>
 #include "header.h"
 
-SHAREDMEM player, *pShared;
+SHAREDMEM player;
+SHAREDMEM *pShared;
 
 TCHAR NameCanWrite[] = TEXT("Semaphore_1");
 TCHAR NameCanRead[] = TEXT("Semaphore_2");
@@ -22,42 +23,40 @@ BOOL TesteDLL(PLAYERS *client)
 BOOL RecieveBroadcast(){
 	return true;
 }
-/*
-BOOL RecieveMessage(PLAYERS *client)
+
+PLAYERS RecieveMessage(PLAYERS *client)
 {
-	int pos;
+	if (pShared != NULL) {
+		WaitForSingleObject(hCanRead, INFINITE);
+		WaitForSingleObject(mutex_1, INFINITE);
 
-	WaitForSingleObject(hCanRead, INFINITE);
-	WaitForSingleObject(mutex_1, INFINITE);
+		player = *pShared;
+		client = &player.players[player.out];
+		(player.out)++;
 
-	pos = client->out;
-	client->out = (client->out + 1) % Buffers;
-	CopyMemory(pShared, client, sizeof(PLAYERS));
-
-	ReleaseMutex(mutex_1);
-	ReleaseSemaphore(hCanWrite, 1, NULL);
-
-	return true;
+		ReleaseMutex(mutex_1);
+		ReleaseSemaphore(hCanWrite, 1, NULL);
+	}
+	return *client;
 }
 
 BOOL SendMessages(PLAYERS *client)
 {
-	int pos;
-
+	
 	WaitForSingleObject(hCanWrite, INFINITE);
-	WaitForSingleObject(mutex_2, INFINITE);
+	WaitForSingleObject(mutex_1, INFINITE);
 
-	pos = client->in;
-	client->in = (client->in + 1) % Buffers;
-	CopyMemory(pShared, client, sizeof(PLAYERS));
+	(player.in)++ % Buffers;
+	player.players[player.in] = *client;
+	CopyMemory(pShared, &player, sizeof(SHAREDMEM));
 
-	ReleaseMutex(mutex_2);
+	ReleaseMutex(mutex_1);
 	ReleaseSemaphore(hCanRead, 1, NULL);
 
 	return true;
-}*/
+}
 
-BOOL Login(SHAREDMEM *client)
+BOOL Login(PLAYERS *client)
 {
 	mutex_1 = OpenMutex(MUTEX_ALL_ACCESS, 0, TEXT("Mutex_1"));
 	if (mutex_1 == NULL)
@@ -81,20 +80,15 @@ BOOL Login(SHAREDMEM *client)
 		_gettchar();
 		return EXIT_FAILURE;
 	}
+	
+	player.in = 0;
+	player.out = 0;
 		
-	int pos;
-
-	client->in = 0;
-	client->out = 0;
-	client->players[client->in].id = GetCurrentProcessId();
-	_tprintf(TEXT("%d\n%s\n"), client->players[client->in].id, client->players[client->in].username);
 	WaitForSingleObject(hCanWrite, INFINITE);
 	WaitForSingleObject(mutex_1, INFINITE);
 
-	//pos = client->in;
-	//client->in = (client->in + 1) % Buffers;
-
-	CopyMemory(pShared, client, sizeof(SHAREDMEM));
+	player.players[player.in] = *client;
+	CopyMemory(pShared, &player, sizeof(SHAREDMEM));
 
 	ReleaseMutex(mutex_1);
 	ReleaseSemaphore(hCanRead, 1, NULL);

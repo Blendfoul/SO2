@@ -1,7 +1,7 @@
 ﻿  MappedDLL.cpp
-c:\users\joao_\documents\so2\so2\tp_so2\mappeddll\mappeddll.cpp(77): warning C4477: 'wprintf_s' : format string '%d' requires an argument of type 'int', but variadic argument 1 has type 'size_t'
-  c:\users\joao_\documents\so2\so2\tp_so2\mappeddll\mappeddll.cpp(77): note: consider using '%zd' in the format string
-c:\users\joao_\documents\so2\so2\tp_so2\mappeddll\mappeddll.cpp(77): warning C4474: 'wprintf_s' : too many arguments passed for format string
-  c:\users\joao_\documents\so2\so2\tp_so2\mappeddll\mappeddll.cpp(77): note: placeholders and their parameters expect 1 variadic arguments, but 2 were provided
-c:\users\joao_\documents\so2\so2\tp_so2\mappeddll\mappeddll.cpp(85): warning C4101: 'pos': unreferenced local variable
+c:\users\joao_\documents\so2\so2\tp_so2\mappeddll\mappeddll.cpp(49): warning C4552: '%': result of expression not used
+c:\users\joao_\documents\so2\so2\tp_so2\mappeddll\mappeddll.cpp(76): warning C4477: 'wprintf_s' : format string '%d' requires an argument of type 'int', but variadic argument 1 has type 'size_t'
+  c:\users\joao_\documents\so2\so2\tp_so2\mappeddll\mappeddll.cpp(76): note: consider using '%zd' in the format string
+c:\users\joao_\documents\so2\so2\tp_so2\mappeddll\mappeddll.cpp(76): warning C4474: 'wprintf_s' : too many arguments passed for format string
+  c:\users\joao_\documents\so2\so2\tp_so2\mappeddll\mappeddll.cpp(76): note: placeholders and their parameters expect 1 variadic arguments, but 2 were provided
   MappedDLL.vcxproj -> C:\Users\joao_\Documents\SO2\SO2\TP_SO2\servidor\x64\Debug\MappedDLL.dll

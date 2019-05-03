@@ -2,6 +2,9 @@
 
 using namespace std;
 
+SHAREDMEM message;
+vector<PLAYERS> players(MAX_PLAYERS);
+
 int _tmain(int argc, TCHAR *argv[])
 {
 #ifdef UNICODE
@@ -78,19 +81,26 @@ int _tmain(int argc, TCHAR *argv[])
 	CloseHandle(hMutexCanWrite);
 
     SaveTopTen();
-	loadTopTen();
 
     return EXIT_SUCCESS;
 }
 
 //TODO: Implementar consola para o servidor
 
+void PrintPlayers() {
+	for (int i = 0; i < nPlayers; i++)
+	{
+		_tprintf(TEXT("%s\t%d\t%d\n"), players.at(i).username, players.at(i).id, players.at(i).code);
+	}
+}
+
 DWORD WINAPI ServerInput()
 {
-	SHAREDMEM pAction;
+	PLAYERS pAction;
 
     while (1)
     {
+		PrintPlayers();
         pAction = RecieveRequest();
         HandleAction(pAction);
     };
@@ -100,51 +110,53 @@ DWORD WINAPI ServerInput()
 
 //TODO: Comunicação servidor-cliente
 
-BOOL HandleAction(SHAREDMEM pAction)
+BOOL HandleAction(PLAYERS pAction)
 {
-    BOOL validID = getPlayerId(pAction.players[pAction.out].id);
-    BOOL validUsername = getPlayerUsername(pAction.players[pAction.out].username);
+    BOOL validID = getPlayerId(pAction.id);
+    BOOL validUsername = getPlayerUsername(pAction.username);
 
     if (!validID && !validUsername && !gameOn && nPlayers < MAX_PLAYERS)
     {
-		pAction.players[pAction.out] = AddPlayerToArray(pAction.players[pAction.out]);
-        nPlayers++;
+		pAction = AddPlayerToArray(&pAction);
+		_tprintf(TEXT("%d"), pAction.code);
+		nPlayers++;
     }
     else if (!validID && !validUsername && nPlayers >= MAX_PLAYERS)
     {
         DenyPlayerAcess();
     }
-	else if(validID && validUsername && _tcscmp(pAction.players[pAction.out].command, TEXT("top10")))
-		loadTopTen();
+	else if (validID && validUsername && _tcscmp(pAction.command, TEXT("top10")) == 0) {
+		SaveTopTen();
+		return true;
+	}
 
     BuildBroadcast(&pAction);
     return true;
 }
 
-SHAREDMEM RecieveRequest() {
-	SHAREDMEM pAction;
+PLAYERS RecieveRequest() {
 	_tprintf(TEXT("Waiting for connection or requests\n"));
 	WaitForSingleObject(hCanRead, INFINITE);
 	WaitForSingleObject(hMutex, INFINITE);
 	
-	pAction = *pBuf;
+	message = *pBuf;
 	
 	ReleaseMutex(hMutex);
 	ReleaseSemaphore(hCanWrite, 1, NULL);
 	
-	_tprintf(TEXT("Client or request request received from %s %d!\n"), pAction.players[pAction.out].username, pAction.players[pAction.out].id);
-	return pAction;
+	_tprintf(TEXT("Client or request request received from %s %d!\n"), message.players[message.out].username, message.players[message.out].id);
+	return message.players[message.in];
 }
 
 //TODO: Adicionar Jogador ao Array de jogadores
 
-PLAYERS AddPlayerToArray(PLAYERS pAction)
+PLAYERS AddPlayerToArray(PLAYERS *pAction)
 {
-    pAction.score = 0;
-    pAction.code = USRVALID;
-	players[nPlayers] = pAction;
-    _tprintf(TEXT("Sucess\n"));
-    return pAction;
+    pAction->score = 0;
+    pAction->code = USRVALID;
+	players[nPlayers] = *pAction;
+    _tprintf(TEXT("Sucess %d\n"), pAction->code);
+    return *pAction;
 }
 
 int getPlayerId(int pid)
@@ -177,17 +189,18 @@ BOOL DenyPlayerAcess()
 
 //TODO: Envio de Broadcast
 
-BOOL BuildBroadcast(SHAREDMEM * pAction)
+BOOL BuildBroadcast(PLAYERS * pAction)
 {	
 	WaitForSingleObject(hCanWrite, INFINITE);
-	WaitForSingleObject(hMutexCanWrite, INFINITE);
+	WaitForSingleObject(hMutex, INFINITE);
 
-	pAction->in = (pAction->in + 1);
-	CopyMemory(pBuf, pAction, sizeof(SHAREDMEM));
+	message.players[message.in] = *pAction;
+	_tprintf(TEXT("MAD %s\t%d\n"), message.players[message.in].username, message.players[message.in].code);
+	(message.in)++;
+	CopyMemory(pBuf, &message, sizeof(SHAREDMEM));
 
-	ReleaseMutex(hMutexCanWrite);
-	ReleaseSemaphore(hCanRead, nPlayers, NULL);
-
+	ReleaseMutex(hMutex);
+	ReleaseSemaphore(hCanRead, 1, NULL);
     return true;
 }
 
@@ -203,10 +216,12 @@ DWORD WINAPI BallMovement()
 
 void SaveTopTen()
 {
+	int iSize, val;
     int iResult, iNpreenchidos = 10, values[10] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90};
     HKEY hkChave;
     TCHAR nome[10][MAXT] = {TEXT("User 1"), TEXT("User 2"), TEXT("User 3"), TEXT("User 4"), TEXT("User 5"), TEXT("User 6"), TEXT("User 7"), TEXT("User 8"), TEXT("User 9"), TEXT("User 10")};
     TCHAR tp[10][MAXT] = {TEXT("T1"), TEXT("T2"), TEXT("T3"), TEXT("T4"), TEXT("T5"), TEXT("T6"), TEXT("T7"), TEXT("T8"), TEXT("T9"), TEXT("T10")};
+	TCHAR nomeAutor[MAXT];
 
     if (RegCreateKeyEx(HKEY_CURRENT_USER, TEXT("Software\\Arkanoid"), 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hkChave, (LPDWORD)&iResult) == ERROR_SUCCESS)
     {
@@ -220,32 +235,18 @@ void SaveTopTen()
                 RegSetValueEx(hkChave, nome[i], 0, REG_BINARY, (LPBYTE)&values[i], sizeof(int));
             }
         }
-        RegCloseKey(hkChave);
-    }
-}
-
-void loadTopTen()
-{
-    int iResult, iSize, iValues[10], iNpreenchidos = 10;
-    TCHAR nomeAutor[MAXT];
-	TCHAR tp[10][MAXT] = { TEXT("T1"), TEXT("T2"), TEXT("T3"), TEXT("T4"), TEXT("T5"), TEXT("T6"), TEXT("T7"), TEXT("T8"), TEXT("T9"), TEXT("T10") };
-	TCHAR nome[10][MAXT] = { TEXT("User 1"), TEXT("User 2"), TEXT("User 3"), TEXT("User 4"), TEXT("User 5"), TEXT("User 6"), TEXT("User 7"), TEXT("User 8"), TEXT("User 9"), TEXT("User 10") };
-    HKEY hkChave;
-
-	if (RegCreateKeyEx(HKEY_CURRENT_USER, TEXT("Software\\Arkanoid"), 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hkChave, (LPDWORD)&iResult) == ERROR_SUCCESS)
-	{
-		if (iResult == REG_OPENED_EXISTING_KEY)
+		else if (iResult == REG_OPENED_EXISTING_KEY)
 		{
 			for (int i = 0; i < iNpreenchidos; i++)
 			{
 				iSize = MAXT * sizeof(TCHAR);
 				RegQueryValueEx(hkChave, tp[i], NULL, NULL, (LPBYTE)&nomeAutor, (LPDWORD)&iSize);
 				iSize = sizeof(int);
-				RegQueryValueEx(hkChave, nome[i], NULL, NULL, (LPBYTE)&iValues, (LPDWORD)&iSize);
+				RegQueryValueEx(hkChave, nome[i], NULL, NULL, (LPBYTE)&val, (LPDWORD)&iSize);
 
-				_tprintf(__T("Top %d -> Autor: %s Pontuação: %d\n"), i + 1, nomeAutor, iValues);
+				_tprintf(__T("Top %d -> Autor: %s Pontuação: %d\n"), i + 1, nomeAutor, val);
 			}
 		}
-	}
-    RegCloseKey(hkChave);
+        RegCloseKey(hkChave);
+    }
 }

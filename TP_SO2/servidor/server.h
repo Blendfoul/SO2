@@ -12,15 +12,12 @@
 
 #define MAXT 256
 #define BUFFERS 10
-#define MAX_PLAYERS 20
-#define USRVALID 1
-#define USRINVALID 2
+#define MAX_PLAYERS 5
 
 //Global Variables
 int nPlayers;
 BOOL LIVE;
 BOOL gameOn;
-PLAYERS players[MAX_PLAYERS];
 HANDLE hCanWrite, hCanRead, hMem, hFile;
 HANDLE hMutex, hMutexCanWrite;
 HANDLE hCons;
@@ -29,14 +26,13 @@ SHAREDMEM *pBuf = NULL;
 
 //Function prototype
 DWORD WINAPI ServerInput();
-SHAREDMEM RecieveRequest();
-BOOL HandleAction(SHAREDMEM pAction);
-PLAYERS AddPlayerToArray(PLAYERS pAction);
+PLAYERS RecieveRequest();
+BOOL HandleAction(PLAYERS pAction);
+PLAYERS AddPlayerToArray(PLAYERS *pAction);
 int getPlayerId(int pid);
 int getPlayerUsername(TCHAR * nome);
 BOOL DenyPlayerAcess();
-BOOL BuildBroadcast(SHAREDMEM *pAction);
+BOOL BuildBroadcast(PLAYERS *pAction);
 DWORD WINAPI BallMovement();
 
 void SaveTopTen();
-void loadTopTen();

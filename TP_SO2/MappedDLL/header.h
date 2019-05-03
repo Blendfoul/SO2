@@ -20,6 +20,8 @@
 #define BufferSize 100
 #define Buffers 10
 #define MAX 256
+#define USRVALID 1
+#define USRINVALID 2
 
 typedef struct
 {
@@ -53,9 +55,9 @@ typedef struct
 
 	MAPPEDDLL_IMP_API BOOL TesteDLL();
 
-	MAPPEDDLL_IMP_API BOOL Login(SHAREDMEM *client);
+	MAPPEDDLL_IMP_API BOOL Login(PLAYERS *client);
 
-	MAPPEDDLL_IMP_API BOOL RecieveMessage(PLAYERS * client);
+	MAPPEDDLL_IMP_API PLAYERS RecieveMessage(PLAYERS * client);
 	MAPPEDDLL_IMP_API BOOL SendMessages(PLAYERS * client);
 
 	MAPPEDDLL_IMP_API BOOL RecieveBroadcast();
