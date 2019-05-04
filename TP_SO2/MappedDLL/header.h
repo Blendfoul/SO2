@@ -22,6 +22,7 @@
 #define MAX 256
 #define USRVALID 1
 #define USRINVALID 2
+#define LOGOUTSUCCESS 9
 
 typedef struct
 {
@@ -61,3 +62,5 @@ typedef struct
 	MAPPEDDLL_IMP_API BOOL SendMessages(PLAYERS * client);
 
 	MAPPEDDLL_IMP_API BOOL RecieveBroadcast();
+
+	MAPPEDDLL_IMP_API void CloseVars();

@@ -31,7 +31,8 @@ PLAYERS RecieveMessage(PLAYERS *client)
 		WaitForSingleObject(mutex_1, INFINITE);
 
 		player = *pShared;
-		client = &player.players[player.out];
+		if(client->id = player.players[player.out].id)
+			client = &player.players[player.out];
 		(player.out)++;
 
 		ReleaseMutex(mutex_1);
@@ -42,7 +43,7 @@ PLAYERS RecieveMessage(PLAYERS *client)
 
 BOOL SendMessages(PLAYERS *client)
 {
-	
+	_tprintf(TEXT("%d\n"), client->id);
 	WaitForSingleObject(hCanWrite, INFINITE);
 	WaitForSingleObject(mutex_1, INFINITE);
 
@@ -94,4 +95,13 @@ BOOL Login(PLAYERS *client)
 	ReleaseSemaphore(hCanRead, 1, NULL);
 
 	return true;
+}
+
+void CloseVars() {
+	UnmapViewOfFile(pShared);
+	CloseHandle(mutex_1);
+	CloseHandle(hCanRead);
+	CloseHandle(hCanWrite);
+	CloseHandle(hMem);
+	CloseHandle(hFile);
 }

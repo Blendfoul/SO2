@@ -29,10 +29,10 @@ DWORD WINAPI ServerInput();
 PLAYERS RecieveRequest();
 BOOL HandleAction(PLAYERS pAction);
 PLAYERS AddPlayerToArray(PLAYERS *pAction);
+BOOL RemovePlayerFromArray(PLAYERS *pPlayers);
 int getPlayerId(int pid);
 int getPlayerUsername(TCHAR * nome);
-BOOL DenyPlayerAcess();
-BOOL BuildBroadcast(PLAYERS *pAction);
+BOOL BuildReply(PLAYERS *pAction);
 DWORD WINAPI BallMovement();
 
 void SaveTopTen();
