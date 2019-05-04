@@ -1,12 +1,4 @@
-#include <Windows.h>
-#include <stdio.h>
-#include <string.h>
-#include <io.h>
-#include <tchar.h>
-#include <fcntl.h>
-#include "../MappedDLL/header.h"
-
-
+#include "client.h"
 
 int _tmain() {
 
@@ -16,7 +8,8 @@ int _tmain() {
 	_setmode(_fileno(stderr), _O_WTEXT);
 #endif
 
-	PLAYERS aux;
+	DWORD threadID[2];
+	LIVE = true;
 	
 	aux.id = GetCurrentProcessId();
 	_tprintf_s(TEXT("Username -> "), _tcslen(TEXT("Username -> ")));
@@ -26,40 +19,30 @@ int _tmain() {
 		
 	aux = RecieveMessage(&aux);
 	
-	_tprintf(TEXT("%s\t%d\t%d\n"), aux.username, aux.id, aux.code);
+	//_tprintf(TEXT("%s\t%d\t%d\n"), aux.username, aux.id, aux.code);
 
 	if (aux.code == USRVALID)
 		_tprintf(TEXT("Utilizador Válido!\n"));
 	else {
 		_tprintf(TEXT("Utilizador Inválido!\n"));
 		_gettchar();
-		return -1;
+		return EXIT_FAILURE;
+	}
+	hConsole = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ConsoleInput, NULL, 0, &threadID[0]);
+	if (hConsole == NULL) {
+		_tprintf(TEXT("Error creating thread\n"));
+		return EXIT_FAILURE;
 	}
 
-	fflush(stdin);
-	_gettchar();
-
-	_tprintf_s(TEXT("Command -> "), _tcslen(TEXT("Command -> ")));
-	_tscanf_s(TEXT("%[^\n]s"), aux.command, MAX);
-
-	
-	
-	SendMessages(&aux);
-
-	aux = RecieveMessage(&aux);
-	if (_tcscmp(aux.command, TEXT("top10")) == 0) {
-		for (int i = 0; i < 10; i++)
-			_tprintf(__T("Top %d -> Autor: %s Pontuação: %d\n"), i + 1, aux.top.names[i], aux.top.points[i]);
-
-		fgetwc(stdin);
-		//_tcscpy_s(aux.command, sizeof(TEXT("logout")),TEXT("logout"));
-		_tprintf_s(TEXT("Command -> "), _tcslen(TEXT("Command -> ")));
-		_tscanf_s(TEXT("%[^\n]s"), aux.command, MAX);
-
-		SendMessages(&aux);
-
-		aux = RecieveMessage(&aux);
+	hBallControl = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)Ball, NULL, 0, &threadID[1]);
+	if (hBallControl == NULL) {
+		_tprintf(TEXT("Error creating thread\n"));
+		return EXIT_FAILURE;
 	}
+
+	WaitForSingleObject(hConsole, INFINITE);
+	WaitForSingleObject(hBallControl, INFINITE);
+
 	if (aux.code == LOGOUTSUCCESS)
 		_tprintf(TEXT("Logout com sucesso Code: %d!\n"), aux.code);
 	else
@@ -67,8 +50,44 @@ int _tmain() {
 
 
 	CloseVars();
-	Sleep(10000);
+	CloseHandle(hConsole);
+	CloseHandle(hBallControl);
+	
+	return 0;
+}
 
+DWORD WINAPI ConsoleInput() {
+	
+	while (LIVE == true) {
+		if (aux.code == SERVERCLOSE) {
+			_tprintf(TEXT("Server shutdown!\n"));
+			LIVE = false;
+			break;
+		}
+
+		fgetwc(stdin);
+		_tprintf_s(TEXT("Command -> "), _tcslen(TEXT("Command -> ")));
+		_tscanf_s(TEXT("%[^\n]s"), aux.command, MAX);
+
+		SendMessages(&aux);
+		aux = RecieveMessage(&aux);
+
+		if (_tcscmp(aux.command, TEXT("top10")) == 0)
+			for (int i = 0; i < 10; i++)
+				_tprintf(__T("Top %d -> Autor: %s Pontuação: %d\n"), i + 1, aux.top.names[i], aux.top.points[i]);
+		else if (_tcscmp(aux.command, TEXT("logout")) == 0) {
+			LIVE = false;
+			break;
+		}
+	};
+
+	return 0;
+}
+
+DWORD WINAPI Ball() {
+	while (LIVE == true) {
+		game = RecieveBroadcast(&game);
+	};
 	
 	return 0;
 }

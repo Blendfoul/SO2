@@ -23,6 +23,7 @@
 #define USRVALID 1
 #define USRINVALID 2
 #define LOGOUTSUCCESS 9
+#define SERVERCLOSE 8
 
 typedef struct {
 	TCHAR names[10][MAX];
@@ -48,14 +49,14 @@ typedef struct {
 typedef struct
 {
 	int x, y;
+	int trajectory;
 	int id;
 }BALL;
 
 typedef struct
 {
-	int in, out;
 	BALL ball;
-	
+	int code;
 }GAMEDATA;
 
 // TODO: reference additional headers your program requires here
@@ -67,6 +68,6 @@ typedef struct
 	MAPPEDDLL_IMP_API PLAYERS RecieveMessage(PLAYERS * client);
 	MAPPEDDLL_IMP_API BOOL SendMessages(PLAYERS * client);
 
-	MAPPEDDLL_IMP_API BOOL RecieveBroadcast();
+	MAPPEDDLL_IMP_API GAMEDATA RecieveBroadcast(GAMEDATA *pGame);
 
 	MAPPEDDLL_IMP_API void CloseVars();

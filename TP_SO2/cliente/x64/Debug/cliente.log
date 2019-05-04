@@ -1,9 +1,6 @@
 ﻿  Source.cpp
-c:\users\joao_\documents\so2\so2\tp_so2\cliente\source.cpp(21): warning C4474: 'wprintf_s' : too many arguments passed for format string
-  c:\users\joao_\documents\so2\so2\tp_so2\cliente\source.cpp(21): note: placeholders and their parameters expect 0 variadic arguments, but 1 were provided
-c:\users\joao_\documents\so2\so2\tp_so2\cliente\source.cpp(23): warning C4302: 'type cast': truncation from 'const wchar_t *' to 'TCHAR'
-c:\users\joao_\documents\so2\so2\tp_so2\cliente\source.cpp(31): warning C4474: 'wprintf_s' : too many arguments passed for format string
-  c:\users\joao_\documents\so2\so2\tp_so2\cliente\source.cpp(31): note: placeholders and their parameters expect 0 variadic arguments, but 1 were provided
-c:\users\joao_\documents\so2\so2\tp_so2\cliente\source.cpp(53): warning C4474: 'wprintf_s' : too many arguments passed for format string
-  c:\users\joao_\documents\so2\so2\tp_so2\cliente\source.cpp(53): note: placeholders and their parameters expect 0 variadic arguments, but 1 were provided
+c:\users\joao_\documents\so2\so2\tp_so2\cliente\source.cpp(15): warning C4474: 'wprintf_s' : too many arguments passed for format string
+  c:\users\joao_\documents\so2\so2\tp_so2\cliente\source.cpp(15): note: placeholders and their parameters expect 0 variadic arguments, but 1 were provided
+c:\users\joao_\documents\so2\so2\tp_so2\cliente\source.cpp(69): warning C4474: 'wprintf_s' : too many arguments passed for format string
+  c:\users\joao_\documents\so2\so2\tp_so2\cliente\source.cpp(69): note: placeholders and their parameters expect 0 variadic arguments, but 1 were provided
   cliente.vcxproj -> C:\Users\joao_\Documents\SO2\SO2\TP_SO2\servidor\x64\Debug\cliente.exe

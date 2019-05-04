@@ -5,12 +5,13 @@
 
 SHAREDMEM player;
 SHAREDMEM *pShared;
+GAMEDATA *pSharedGame;
 
 TCHAR NameCanWrite[] = TEXT("Semaphore_1");
 TCHAR NameCanRead[] = TEXT("Semaphore_2");
 
-HANDLE hCanWrite, hCanRead;
-HANDLE hMem, hFile;
+HANDLE hCanWrite, hCanRead, hCanWriteBroad, hCanReadBroad;
+HANDLE hMem, hFile, hMemGame, hFileGame;
 HANDLE mutex_1, mutex_2;
 
 BOOL TesteDLL(PLAYERS *client)
@@ -20,8 +21,18 @@ BOOL TesteDLL(PLAYERS *client)
 	return true;
 }
 
-BOOL RecieveBroadcast(){
-	return true;
+GAMEDATA RecieveBroadcast(GAMEDATA *pGame){
+
+	WaitForSingleObject(hCanReadBroad, INFINITE);
+	WaitForSingleObject(mutex_2, INFINITE);
+
+	pGame = pSharedGame;
+	//_tprintf(TEXT("CODE: %d\n"), pSharedGame->code);
+
+	ReleaseMutex(mutex_2);
+	ReleaseSemaphore(hCanWriteBroad, 1, NULL);
+
+	return *pGame;
 }
 
 PLAYERS RecieveMessage(PLAYERS *client)
@@ -64,13 +75,25 @@ BOOL Login(PLAYERS *client)
 	{
 		CloseHandle(mutex_1);
 		return EXIT_FAILURE;
+	}	
+	mutex_2 = OpenMutex(MUTEX_ALL_ACCESS, 0, TEXT("Mutex_2"));
+	if (mutex_2 == NULL)
+	{
+		CloseHandle(mutex_1);
+		CloseHandle(mutex_2);
+		return EXIT_FAILURE;
 	}
 	hCanRead = OpenSemaphore(SEMAPHORE_ALL_ACCESS, 0, NameCanRead);
 	hCanWrite = OpenSemaphore(SEMAPHORE_ALL_ACCESS, 0, NameCanWrite);
+	hCanWriteBroad = OpenSemaphore(SEMAPHORE_ALL_ACCESS, 0, TEXT("Semaphore_3"));
+	hCanReadBroad = OpenSemaphore(SEMAPHORE_ALL_ACCESS, 0, TEXT("Semaphore_4"));
 	
 	hFile = CreateFile(NULL, GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
 	hMem = CreateFileMapping(hFile, NULL, PAGE_READWRITE, 0, sizeof(SHAREDMEM), TEXT("Shared_1"));
 
+	hFileGame = CreateFile(NULL, GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
+	hMemGame = CreateFileMapping(hFileGame, NULL, PAGE_READWRITE, 0, sizeof(SHAREDMEM), TEXT("Shared_2"));
+	
 	pShared = (SHAREDMEM *)MapViewOfFile(hMem, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(SHAREDMEM));
 	if (pShared == NULL)
 	{
@@ -78,6 +101,20 @@ BOOL Login(PLAYERS *client)
 
 		CloseHandle(hFile);
 		CloseHandle(hMem);
+		_gettchar();
+		return EXIT_FAILURE;
+	}
+
+	pSharedGame = (GAMEDATA *)MapViewOfFile(hMem, FILE_MAP_READ, 0, 0, sizeof(GAMEDATA));
+	if (pSharedGame == NULL)
+	{
+		_tprintf_s(TEXT("Erro de criação da view of file %zu\n"), _tcslen(TEXT("Erro de criação da view of file %d\n")), GetLastError());
+
+		CloseHandle(hFile);
+		CloseHandle(hMem);
+		CloseHandle(hFileGame);
+		CloseHandle(hMemGame);
+		
 		_gettchar();
 		return EXIT_FAILURE;
 	}

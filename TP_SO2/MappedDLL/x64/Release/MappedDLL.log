@@ -1,0 +1,8 @@
+﻿  MappedDLL.cpp
+c:\users\joao_\documents\so2\so2\tp_so2\mappeddll\mappeddll.cpp(77): warning C4474: 'wprintf_s' : too many arguments passed for format string
+  c:\users\joao_\documents\so2\so2\tp_so2\mappeddll\mappeddll.cpp(77): note: placeholders and their parameters expect 1 variadic arguments, but 2 were provided
+     Creating library C:\Users\joao_\Documents\SO2\SO2\TP_SO2\servidor\x64\Release\MappedDLL.lib and object C:\Users\joao_\Documents\SO2\SO2\TP_SO2\servidor\x64\Release\MappedDLL.exp
+  Generating code
+  All 10 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  Finished generating code
+  MappedDLL.vcxproj -> C:\Users\joao_\Documents\SO2\SO2\TP_SO2\servidor\x64\Release\MappedDLL.dll

@@ -3,6 +3,7 @@
 using namespace std;
 
 SHAREDMEM message;
+GAMEDATA gamedata;
 vector<PLAYERS> players(MAX_PLAYERS);
 
 int _tmain(int argc, TCHAR *argv[])
@@ -14,7 +15,8 @@ int _tmain(int argc, TCHAR *argv[])
 #endif
 
     nPlayers = 0;
-    DWORD threadID;
+    DWORD threadID[3];
+	LIVE = true;
 
     hMutex = OpenMutex(MUTEX_ALL_ACCESS, false, TEXT("Mutex_1"));
 
@@ -25,25 +27,28 @@ int _tmain(int argc, TCHAR *argv[])
     else
     {
         _tprintf(TEXT("There is an instance of the server already running. Closing server..."));
-
-        _gettchar();
-
+		fgetwc(stdin);
         return EXIT_FAILURE;
     }
-    hMutexCanWrite = CreateMutex(NULL, FALSE, TEXT("Mutex_2"));
+    hMutexBroad = CreateMutex(NULL, FALSE, TEXT("Mutex_2"));
     hCanWrite = CreateSemaphore(NULL, BUFFERS, BUFFERS, TEXT("Semaphore_1"));
     hCanRead = CreateSemaphore(NULL, 0, BUFFERS, TEXT("Semaphore_2"));
-    hFile = CreateFile(NULL, GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
-    hMem = CreateFileMapping(hFile, NULL, PAGE_READWRITE, 0, sizeof(SHAREDMEM), TEXT("Shared_1"));
+    hCanWriteBroad = CreateSemaphore(NULL, BUFFERS, BUFFERS, TEXT("Semaphore_3"));
+    hCanReadBroad = CreateSemaphore(NULL, 0, BUFFERS, TEXT("Semaphore_4"));
+    hFilePlayers = CreateFile(NULL, GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
+    hMemPlayers = CreateFileMapping(hFilePlayers, NULL, PAGE_READWRITE, 0, sizeof(SHAREDMEM), TEXT("Shared_1"));
+	
+	hFileGame = CreateFile(NULL, GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
+	hMemGame = CreateFileMapping(hFilePlayers, NULL, PAGE_READWRITE, 0, sizeof(GAMEDATA), TEXT("Shared_2"));
 
-    if (hCanWrite == NULL || hCanRead == NULL || hMem == NULL)
+    if (hCanWrite == NULL || hCanRead == NULL || hMemPlayers == NULL || hFileGame == NULL || hMemGame == NULL)
     {
 		_tprintf(TEXT("Erro de criação de objectos do windows %lu\n"), GetLastError());
         _gettchar();
         return EXIT_FAILURE;
     }
 
-    pBuf = (SHAREDMEM *)MapViewOfFile(hMem, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(SHAREDMEM));
+    pBuf = (SHAREDMEM *)MapViewOfFile(hMemPlayers, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(SHAREDMEM));
 
     if (pBuf == NULL)
     {
@@ -51,38 +56,101 @@ int _tmain(int argc, TCHAR *argv[])
 
         CloseHandle(hCanRead);
         CloseHandle(hCanWrite);
-        CloseHandle(hMem);
+        CloseHandle(hMemPlayers);
+		CloseHandle(hMemGame);
         _gettchar();
         return EXIT_FAILURE;
-    }
+	}
 
-    hCons = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ServerInput, NULL, 0, &threadID);
+	pGameDataShared = (GAMEDATA *)MapViewOfFile(hMemGame, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(GAMEDATA));
+
+	if (pBuf == NULL)
+	{
+		_tprintf(TEXT("Erro de criação da view of file %lu\n"), GetLastError());
+
+		CloseHandle(hCanRead);
+		CloseHandle(hCanWrite);
+		CloseHandle(hMemPlayers);
+		CloseHandle(hMemGame);
+		_gettchar();
+		return EXIT_FAILURE;
+	}
+
+	hInput = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ServerConsole, NULL, 0, &threadID[0]);
+
+	if (hInput != NULL)
+		_tprintf(TEXT("Lancei uma thread com id %d\n"), threadID[0]);
+	else
+	{
+		_tprintf(TEXT("Erro ao criar Thread\n"));
+		return EXIT_FAILURE;
+	}
+
+    hCons = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ServerInput, NULL, 0, &threadID[1]);
 
     if (hCons != NULL)
-        _tprintf(TEXT("Lancei uma thread com id %d\n"), threadID);
+        _tprintf(TEXT("Lancei uma thread com id %d\n"), threadID[1]);
     else
     {
         _tprintf(TEXT("Erro ao criar Thread\n"));
-        return -1;
+        return EXIT_FAILURE;
     }
 
+	hMovBola = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)BallMovement, (LPVOID)&gamedata.ball, 0, &threadID[2]);
+
+	if (hMovBola != NULL)
+		_tprintf(TEXT("Lancei uma thread com id %d\n"), threadID[2]);
+	else
+	{
+		_tprintf(TEXT("Erro ao criar Thread BallMovement"));
+		return EXIT_FAILURE;
+	}
+	
+	WaitForSingleObject(hInput, INFINITE);
     WaitForSingleObject(hCons, INFINITE);
-    WaitForSingleObject(hLogin, INFINITE);
+    //WaitForSingleObject(hLogin, INFINITE);
 
     UnmapViewOfFile(pBuf);
 
     CloseHandle(hCons);
-    CloseHandle(hCanRead);
+	CloseHandle(hMovBola);
+	CloseHandle(hCanRead);
     CloseHandle(hCanWrite);
-    CloseHandle(hMem);
-    CloseHandle(hFile);
+    CloseHandle(hMemPlayers);
+    CloseHandle(hFilePlayers);
+	CloseHandle(hMemGame);
+	CloseHandle(hFileGame);
     CloseHandle(hMutex);
-    CloseHandle(hMutexCanWrite);
+    CloseHandle(hMutexBroad);
+	CloseHandle(hCanReadBroad);
+	CloseHandle(hCanWriteBroad);
 
     return EXIT_SUCCESS;
 }
 
 //TODO: Implementar consola para o servidor
+
+DWORD WINAPI ServerConsole() {
+	TCHAR local[MAX];
+
+	while (1) {
+		fgetwc(stdin);
+
+		_tprintf_s(TEXT("Command -> "), _tcslen(TEXT("Command -> ")));
+		_tscanf_s(TEXT("%[^\n]s"), local, MAX);
+
+		if (_tcscmp(local, TEXT("close")) == 0) {
+			message.players[message.in].code = SERVERCLOSE;
+			BuildReply(&message.players[message.in]);
+			LIVE = false;
+			break;
+		}
+	};
+
+	_tprintf(TEXT("%s %d\n"), local, LIVE);
+	
+	return 0;
+}
 
 void PrintPlayers()
 {
@@ -96,7 +164,7 @@ DWORD WINAPI ServerInput()
 {
     PLAYERS pAction;
 
-    while (1)
+    while (LIVE == true)
     {
         PrintPlayers();
         pAction = RecieveRequest();
@@ -220,12 +288,84 @@ BOOL BuildReply(PLAYERS *pAction)
     return true;
 }
 
+BOOL SendBroadcast() {
+
+	WaitForSingleObject(hCanWriteBroad, INFINITE);
+	WaitForSingleObject(hMutexBroad, INFINITE);
+	
+	//_tprintf(TEXT("CODE: %d\n"),gamedata.code);
+	CopyMemory(pGameDataShared, &gamedata, sizeof(GAMEDATA));
+
+	ReleaseMutex(hMutexBroad);
+	ReleaseSemaphore(hCanReadBroad, 1, NULL);
+	return true;
+}
+
 //TODO: Lógica Jogo
 
-DWORD WINAPI BallMovement()
+//Tem controlo de esclusao mutua para a var controlDisplacement, que pode nao pode ser alterada
+//no momento em que a thread está a ler o seu valor.
+//
+// para a versão meta 2, fazer consulta das posicoes dos blocos.
+DWORD WINAPI BallMovement(LPVOID lparam)
 {
+	BALL* ball = (BALL*)lparam;
+	ball->x = MAX_SCREEN_WIDTH / 2;  // metade de 1 ecra HD, fica ao centro.
+	ball->y = MAX_SCREEN_HEIGHT / 2; // metade de 1 ecra HD, fica ao centro.
+	ball->trajectory = MOVE_BALL_UPRIGHT;
 
-    return 0;
+	while (LIVE == true) {
+
+		// TODO: Ver com a posição dos tijolos.
+		/*
+		*	o Tricky disto é que mudamos a posição atual da bola e mudamos a trajetoria (para fazermos o proximo check, and so on...)
+		*/
+		switch (ball->trajectory)
+		{
+		case MOVE_BALL_UPLEFT: // 4 resultados possiveis:
+			if (ball->y + 1 == 0)					//	----    obstaculo superior, a bola vai descer  ----- 
+			{
+				ball->y--;
+				if (ball->x + 1 == MAX_SCREEN_WIDTH) {			// obstaculo esquerdo, move downright
+					ball->x--;
+					ball->trajectory = MOVE_BALL_DOWNRIGHT;
+				}
+				else {											// obstaculo direito, move downleft
+					ball->x++;
+					ball->trajectory = MOVE_BALL_DOWNLEFT;
+				}
+			}
+			else									//	----    SEM obstaculo superior, continua a subir  -----  
+			{
+				ball->y++;
+				if (ball->x + 1 == MAX_SCREEN_WIDTH) {			// obstaculo direito, move upleft
+					ball->x--;
+					ball->trajectory = MOVE_BALL_UPLEFT;
+				}
+				else {											// obstaculo esquerdo, move upright
+					ball->x++;
+					ball->trajectory = MOVE_BALL_UPRIGHT;
+				}
+			}
+		case MOVE_BALL_UPRIGHT:
+			(ball->x)--;
+			(ball->y)++;
+			break;
+		case MOVE_BALL_DOWNRIGHT:
+			(ball->x)++;
+			(ball->y)--;
+			break;
+		case MOVE_BALL_DOWNLEFT:
+			(ball->x)--;
+			(ball->y)--;
+			break;
+		default:
+			break;
+		}
+
+		SendBroadcast();
+	}
+	return 0;
 }
 
 //TODO: Top 10
