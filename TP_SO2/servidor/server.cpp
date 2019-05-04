@@ -38,7 +38,7 @@ int _tmain(int argc, TCHAR *argv[])
 
     if (hCanWrite == NULL || hCanRead == NULL || hMem == NULL)
     {
-        wcout << TEXT("Erro de criação de objectos do windows ") << GetLastError() << endl;
+		_tprintf(TEXT("Erro de criação de objectos do windows %lu\n"), GetLastError());
         _gettchar();
         return EXIT_FAILURE;
     }
@@ -47,7 +47,7 @@ int _tmain(int argc, TCHAR *argv[])
 
     if (pBuf == NULL)
     {
-        wcout << TEXT("Erro de criação da view of file ") << GetLastError() << endl;
+        _tprintf(TEXT("Erro de criação da view of file %lu\n"), GetLastError());
 
         CloseHandle(hCanRead);
         CloseHandle(hCanWrite);
@@ -113,7 +113,7 @@ BOOL HandleAction(PLAYERS pAction)
     BOOL validID = getPlayerId(pAction.id);
     BOOL validUsername = getPlayerUsername(pAction.username);
 
-    _tprintf(TEXT("ID: %d\tCommand: %s\n"), pAction.id, pAction.command);
+    //_tprintf(TEXT("ID: %d\tCommand: %s\n"), pAction.id, pAction.command);
 
     if (!validID && !validUsername && !gameOn && nPlayers < MAX_PLAYERS)
     {
@@ -128,13 +128,13 @@ BOOL HandleAction(PLAYERS pAction)
     else if (validID && validUsername && _tcscmp(pAction.command, TEXT("top10")) == 0)
     {
        pAction = SaveTopTen(&pAction);
-	   _tprintf(TEXT("%d\n"), pAction.top.points[2]);
+	   //_tprintf(TEXT("%d\n"), pAction.top.points[2]);
     }
 
     else if (validID && validUsername && _tcscmp(pAction.command, TEXT("logout")) == 0)
     {
         RemovePlayerFromArray(&pAction);
-        _tprintf(TEXT("Removed\n"));
+        _tprintf(TEXT("Removed player: %s\n"), pAction.username);
         nPlayers--;
         pAction.code = LOGOUTSUCCESS;
     }
@@ -232,12 +232,11 @@ DWORD WINAPI BallMovement()
 
 PLAYERS SaveTopTen(PLAYERS *pAction)
 {
-    int iSize, val;
+    int iSize;
     int iResult, iNpreenchidos = 10, values[10] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90};
     HKEY hkChave;
     TCHAR nome[10][MAXT] = {TEXT("User 1"), TEXT("User 2"), TEXT("User 3"), TEXT("User 4"), TEXT("User 5"), TEXT("User 6"), TEXT("User 7"), TEXT("User 8"), TEXT("User 9"), TEXT("User 10")};
     TCHAR tp[10][MAXT] = {TEXT("T1"), TEXT("T2"), TEXT("T3"), TEXT("T4"), TEXT("T5"), TEXT("T6"), TEXT("T7"), TEXT("T8"), TEXT("T9"), TEXT("T10")};
-    TCHAR nomeAutor[MAXT];
 
     if (RegCreateKeyEx(HKEY_CURRENT_USER, TEXT("Software\\Arkanoid"), 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hkChave, (LPDWORD)&iResult) == ERROR_SUCCESS)
     {

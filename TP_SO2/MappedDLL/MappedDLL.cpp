@@ -33,7 +33,7 @@ PLAYERS RecieveMessage(PLAYERS *client)
 		player = *pShared;
 		if(client->id = player.players[player.out].id)
 			client = &player.players[player.out];
-		(player.out)++ % BUFFERS;
+		player.out = (player.out)++ % BUFFERS;
 
 		ReleaseMutex(mutex_1);
 		ReleaseSemaphore(hCanWrite, 1, NULL);
@@ -47,7 +47,7 @@ BOOL SendMessages(PLAYERS *client)
 	WaitForSingleObject(hCanWrite, INFINITE);
 	WaitForSingleObject(mutex_1, INFINITE);
 
-	(player.in)++ % BUFFERS;
+	player.in = (player.in)++ % BUFFERS;
 	player.players[player.in] = *client;
 	CopyMemory(pShared, &player, sizeof(SHAREDMEM));
 
@@ -74,7 +74,7 @@ BOOL Login(PLAYERS *client)
 	pShared = (SHAREDMEM *)MapViewOfFile(hMem, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(SHAREDMEM));
 	if (pShared == NULL)
 	{
-		_tprintf_s(TEXT("Erro de criação da view of file %d\n"), _tcslen(TEXT("Erro de criação da view of file %d\n")),GetLastError());
+		_tprintf_s(TEXT("Erro de criação da view of file %zu\n"), _tcslen(TEXT("Erro de criação da view of file %d\n")), GetLastError());
 
 		CloseHandle(hFile);
 		CloseHandle(hMem);

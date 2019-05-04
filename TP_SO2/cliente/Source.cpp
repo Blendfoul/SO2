@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <io.h>
+#include <tchar.h>
 #include <fcntl.h>
 #include "../MappedDLL/header.h"
 
@@ -20,43 +21,45 @@ int _tmain() {
 	aux.id = GetCurrentProcessId();
 	_tprintf_s(TEXT("Username -> "), _tcslen(TEXT("Username -> ")));
 	_tscanf_s(TEXT("%[^\n]s"),aux.username ,MAX);
-	aux.command[0] = (TCHAR) TEXT("\0");
+
 	Login(&aux);
 		
 	aux = RecieveMessage(&aux);
 	
-	fflush(stdin);
-	_gettchar();
-
-	_tprintf_s(TEXT("Command -> "), _tcslen(TEXT("Command -> ")));
-	_tscanf_s(TEXT("%[^\n]s"), aux.command, MAX);
-
 	_tprintf(TEXT("%s\t%d\t%d\n"), aux.username, aux.id, aux.code);
 
 	if (aux.code == USRVALID)
 		_tprintf(TEXT("Utilizador Válido!\n"));
 	else {
 		_tprintf(TEXT("Utilizador Inválido!\n"));
+		_gettchar();
 		return -1;
 	}
+
+	fflush(stdin);
+	_gettchar();
+
+	_tprintf_s(TEXT("Command -> "), _tcslen(TEXT("Command -> ")));
+	_tscanf_s(TEXT("%[^\n]s"), aux.command, MAX);
+
+	
 	
 	SendMessages(&aux);
 
 	aux = RecieveMessage(&aux);
+	if (_tcscmp(aux.command, TEXT("top10")) == 0) {
+		for (int i = 0; i < 10; i++)
+			_tprintf(__T("Top %d -> Autor: %s Pontuação: %d\n"), i + 1, aux.top.names[i], aux.top.points[i]);
 
-	for (int i = 0; i < 10; i++)
-		_tprintf(__T("Top %d -> Autor: %s Pontuação: %d\n"), i + 1, aux.top.names[i], aux.top.points[i]);
+		fgetwc(stdin);
+		//_tcscpy_s(aux.command, sizeof(TEXT("logout")),TEXT("logout"));
+		_tprintf_s(TEXT("Command -> "), _tcslen(TEXT("Command -> ")));
+		_tscanf_s(TEXT("%[^\n]s"), aux.command, MAX);
 
-	_gettchar();
-	fgetwc(stdin);
-	//_tcscpy_s(aux.command, sizeof(TEXT("logout")),TEXT("logout"));
-	_tprintf_s(TEXT("Command -> "), _tcslen(TEXT("Command -> ")));
-	_tscanf_s(TEXT("%[^\n]s"), aux.command, MAX);
+		SendMessages(&aux);
 
-	SendMessages(&aux);
-
-	aux = RecieveMessage(&aux);
-
+		aux = RecieveMessage(&aux);
+	}
 	if (aux.code == LOGOUTSUCCESS)
 		_tprintf(TEXT("Logout com sucesso Code: %d!\n"), aux.code);
 	else
