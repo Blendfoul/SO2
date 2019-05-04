@@ -20,6 +20,7 @@ int _tmain() {
 	aux.id = GetCurrentProcessId();
 	_tprintf_s(TEXT("Username -> "), _tcslen(TEXT("Username -> ")));
 	_tscanf_s(TEXT("%[^\n]s"),aux.username ,MAX);
+	aux.command[0] = (TCHAR) TEXT("\0");
 	Login(&aux);
 		
 	aux = RecieveMessage(&aux);
@@ -43,6 +44,10 @@ int _tmain() {
 
 	aux = RecieveMessage(&aux);
 
+	for (int i = 0; i < 10; i++)
+		_tprintf(__T("Top %d -> Autor: %s Pontuação: %d\n"), i + 1, aux.top.names[i], aux.top.points[i]);
+
+	_gettchar();
 	fgetwc(stdin);
 	//_tcscpy_s(aux.command, sizeof(TEXT("logout")),TEXT("logout"));
 	_tprintf_s(TEXT("Command -> "), _tcslen(TEXT("Command -> ")));

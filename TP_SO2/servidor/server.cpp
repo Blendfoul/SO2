@@ -20,7 +20,6 @@ int _tmain(int argc, TCHAR *argv[])
 
     if (hMutex == NULL)
     {
-        // no duplicate instances found
         hMutex = CreateMutex(NULL, FALSE, TEXT("Mutex_1"));
     }
     else
@@ -80,8 +79,6 @@ int _tmain(int argc, TCHAR *argv[])
     CloseHandle(hMutex);
     CloseHandle(hMutexCanWrite);
 
-    SaveTopTen();
-
     return EXIT_SUCCESS;
 }
 
@@ -130,13 +127,14 @@ BOOL HandleAction(PLAYERS pAction)
     }
     else if (validID && validUsername && _tcscmp(pAction.command, TEXT("top10")) == 0)
     {
-        SaveTopTen();
+       pAction = SaveTopTen(&pAction);
+	   _tprintf(TEXT("%d\n"), pAction.top.points[2]);
     }
 
     else if (validID && validUsername && _tcscmp(pAction.command, TEXT("logout")) == 0)
     {
         RemovePlayerFromArray(&pAction);
-        _tprintf(TEXT("Removed"));
+        _tprintf(TEXT("Removed\n"));
         nPlayers--;
         pAction.code = LOGOUTSUCCESS;
     }
@@ -232,7 +230,7 @@ DWORD WINAPI BallMovement()
 
 //TODO: Top 10
 
-void SaveTopTen()
+PLAYERS SaveTopTen(PLAYERS *pAction)
 {
     int iSize, val;
     int iResult, iNpreenchidos = 10, values[10] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90};
@@ -258,13 +256,13 @@ void SaveTopTen()
             for (int i = 0; i < iNpreenchidos; i++)
             {
                 iSize = MAXT * sizeof(TCHAR);
-                RegQueryValueEx(hkChave, tp[i], NULL, NULL, (LPBYTE)&nomeAutor, (LPDWORD)&iSize);
+                RegQueryValueEx(hkChave, tp[i], NULL, NULL, (LPBYTE)&pAction->top.names[i], (LPDWORD)&iSize);
                 iSize = sizeof(int);
-                RegQueryValueEx(hkChave, nome[i], NULL, NULL, (LPBYTE)&val, (LPDWORD)&iSize);
-
-                _tprintf(__T("Top %d -> Autor: %s Pontuação: %d\n"), i + 1, nomeAutor, val);
-            }
+                RegQueryValueEx(hkChave, nome[i], NULL, NULL, (LPBYTE) &pAction->top.points[i], (LPDWORD) &iSize);
+			}
         }
         RegCloseKey(hkChave);
     }
+
+	return *pAction;
 }

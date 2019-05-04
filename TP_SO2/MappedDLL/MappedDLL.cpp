@@ -33,7 +33,7 @@ PLAYERS RecieveMessage(PLAYERS *client)
 		player = *pShared;
 		if(client->id = player.players[player.out].id)
 			client = &player.players[player.out];
-		(player.out)++;
+		(player.out)++ % BUFFERS;
 
 		ReleaseMutex(mutex_1);
 		ReleaseSemaphore(hCanWrite, 1, NULL);
@@ -47,7 +47,7 @@ BOOL SendMessages(PLAYERS *client)
 	WaitForSingleObject(hCanWrite, INFINITE);
 	WaitForSingleObject(mutex_1, INFINITE);
 
-	(player.in)++ % Buffers;
+	(player.in)++ % BUFFERS;
 	player.players[player.in] = *client;
 	CopyMemory(pShared, &player, sizeof(SHAREDMEM));
 

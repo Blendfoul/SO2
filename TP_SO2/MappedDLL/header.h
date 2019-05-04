@@ -18,11 +18,16 @@
 #include <memory.h>
 
 #define BufferSize 100
-#define Buffers 10
+#define BUFFERS 10
 #define MAX 256
 #define USRVALID 1
 #define USRINVALID 2
 #define LOGOUTSUCCESS 9
+
+typedef struct {
+	TCHAR names[10][MAX];
+	int points[10];
+}TOP10;
 
 typedef struct
 {
@@ -32,6 +37,7 @@ typedef struct
 	TCHAR command[MAX];
     int pos;
     int score;
+	TOP10 top;
 } PLAYERS;
 
 typedef struct {

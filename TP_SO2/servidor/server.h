@@ -11,7 +11,6 @@
 #include "../MappedDll/header.h"
 
 #define MAXT 256
-#define BUFFERS 10
 #define MAX_PLAYERS 5
 
 //Global Variables
@@ -35,4 +34,4 @@ int getPlayerUsername(TCHAR * nome);
 BOOL BuildReply(PLAYERS *pAction);
 DWORD WINAPI BallMovement();
 
-void SaveTopTen();
+PLAYERS SaveTopTen(PLAYERS *pAction);

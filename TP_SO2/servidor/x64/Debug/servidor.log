@@ -1,2 +1,4 @@
 ﻿  server.cpp
+c:\users\joao_\documents\so2\so2\tp_so2\servidor\server.cpp(240): warning C4101: 'nomeAutor': unreferenced local variable
+c:\users\joao_\documents\so2\so2\tp_so2\servidor\server.cpp(235): warning C4101: 'val': unreferenced local variable
   servidor.vcxproj -> C:\Users\joao_\Documents\SO2\SO2\TP_SO2\servidor\x64\Debug\servidor.exe
