@@ -322,43 +322,110 @@ DWORD WINAPI BallMovement(LPVOID lparam)
 		*/
 		switch (ball->trajectory)
 		{
-		case MOVE_BALL_UPLEFT: // 4 resultados possiveis:
-			if (ball->y + 1 == 0)					//	----    obstaculo superior, a bola vai descer  ----- 
+		case MOVE_BALL_UPRIGHT:
+			
+			if (ball->y - 1 == 0) 
 			{
-				ball->y--;
-				if (ball->x + 1 == MAX_SCREEN_WIDTH) {			// obstaculo esquerdo, move downright
-					ball->x--;
-					ball->trajectory = MOVE_BALL_DOWNRIGHT;
-				}
-				else {											// obstaculo direito, move downleft
-					ball->x++;
+				ball->y++;//descer
+				if (ball->x + 1 == MAX_SCREEN_WIDTH || 0) {
+					ball->x--;							// obstaculo superior direito
 					ball->trajectory = MOVE_BALL_DOWNLEFT;
 				}
+				else {
+					ball->x++;							// obstaculo superior
+					ball->trajectory = MOVE_BALL_DOWNRIGHT;
+				}
 			}
-			else									//	----    SEM obstaculo superior, continua a subir  -----  
-			{
-				ball->y++;
-				if (ball->x + 1 == MAX_SCREEN_WIDTH) {			// obstaculo direito, move upleft
-					ball->x--;
+			else{
+				ball->y--;//subir
+				if (ball->x + 1 == MAX_SCREEN_WIDTH || 0) {
+					ball->x--;							// obstaculo direito
 					ball->trajectory = MOVE_BALL_UPLEFT;
 				}
-				else {											// obstaculo esquerdo, move upright
+				else {									// sem obstaculo
 					ball->x++;
 					ball->trajectory = MOVE_BALL_UPRIGHT;
 				}
 			}
-		case MOVE_BALL_UPRIGHT:
-			(ball->x)--;
-			(ball->y)++;
-			break;
+		break; 
+		
+		case MOVE_BALL_UPLEFT:
+			
+			if (ball->y - 1 == 0 || 0){ 
+				ball->y++;
+				if (ball->x - 1 == 0 || 0 ) {			// obstaculo superior esquerdo
+					ball->x++;
+					ball->trajectory = MOVE_BALL_DOWNRIGHT;
+				}
+				else {									// obstaculo superior
+					ball->x--;
+					ball->trajectory = MOVE_BALL_DOWNLEFT;
+				}
+			}
+			else  
+			{
+				ball->y--;
+				if (ball->x - 1 == 0 || 0) {			
+					ball->x++;							// obstaculo esquerdo
+					ball->trajectory = MOVE_BALL_UPRIGHT;
+				}
+				else {
+					ball->x--;							// sem obstaculo
+					ball->trajectory = MOVE_BALL_UPLEFT;
+				}
+			}
+
 		case MOVE_BALL_DOWNRIGHT:
-			(ball->x)++;
-			(ball->y)--;
+			
+			if (ball->y + 1 == MAX_SCREEN_HEIGHT || 0) {
+				ball->y--;
+				if (ball->x + 1 == MAX_SCREEN_WIDTH || 0) {
+					ball->x--;
+					ball->trajectory = MOVE_BALL_UPLEFT;
+				}
+				else {
+					ball->x++;
+					ball->trajectory = MOVE_BALL_UPRIGHT;
+				}
+			}
+			else {
+				ball->y++;
+				if (ball->x + 1 == MAX_SCREEN_WIDTH || 0) {
+					ball->x--;
+					ball->trajectory = MOVE_BALL_DOWNLEFT;
+				}
+				else {
+					ball->x++;
+					ball->trajectory = MOVE_BALL_DOWNRIGHT;
+				}
+			}
 			break;
+
 		case MOVE_BALL_DOWNLEFT:
-			(ball->x)--;
-			(ball->y)--;
-			break;
+			
+			if (ball->y + 1 == MAX_SCREEN_HEIGHT || 0) {
+				ball->y--;
+				if (ball->x - 1 == 0 || 0) {
+					ball->x++;
+					ball->trajectory = MOVE_BALL_UPRIGHT;
+				}
+				else {
+					ball->x--;
+					ball->trajectory = MOVE_BALL_UPLEFT;
+				}
+			}
+			else{
+				ball->y++;
+				if (ball->x - 1 == 0 || 0) {
+					ball->x++;
+					ball->trajectory = MOVE_BALL_DOWNRIGHT;
+				}
+				else {
+					ball->x--;
+					ball->trajectory = MOVE_BALL_DOWNLEFT;
+				}
+			}
+
 		default:
 			break;
 		}
