@@ -10,9 +10,10 @@ int _tmain() {
 
 	DWORD threadID[2];
 	LIVE = true;
+	keypressed = false;
 	
 	aux.id = GetCurrentProcessId();
-	_tprintf_s(TEXT("Username -> "), _tcslen(TEXT("Username -> ")));
+	_tprintf(TEXT("Username -> "));
 	_tscanf_s(TEXT("%[^\n]s"),aux.username ,MAX);
 
 	Login(&aux);
@@ -48,7 +49,6 @@ int _tmain() {
 	else
 		_tprintf(TEXT("Logout Sem sucesso"));
 
-
 	CloseVars();
 	CloseHandle(hConsole);
 	CloseHandle(hBallControl);
@@ -57,7 +57,8 @@ int _tmain() {
 }
 
 DWORD WINAPI ConsoleInput() {
-	
+	bool key = false;
+
 	while (LIVE == true) {
 		if (aux.code == SERVERCLOSE) {
 			_tprintf(TEXT("Server shutdown!\n"));
@@ -66,7 +67,7 @@ DWORD WINAPI ConsoleInput() {
 		}
 
 		fgetwc(stdin);
-		_tprintf_s(TEXT("Command -> "), _tcslen(TEXT("Command -> ")));
+		_tprintf_s(TEXT("Command -> "));
 		_tscanf_s(TEXT("%[^\n]s"), aux.command, MAX);
 
 		SendMessages(&aux);
@@ -79,6 +80,11 @@ DWORD WINAPI ConsoleInput() {
 			LIVE = false;
 			break;
 		}
+
+		else if (_tcscmp(aux.command, TEXT("ball")) == 0) {
+
+		}
+			
 	};
 
 	return 0;
@@ -87,6 +93,12 @@ DWORD WINAPI ConsoleInput() {
 DWORD WINAPI Ball() {
 	while (LIVE == true) {
 		game = RecieveBroadcast(&game);
+		
+		if (GetAsyncKeyState(VK_ESCAPE))
+			break;
+		else if (_tcscmp(aux.command, TEXT("ball")) == 0)
+			_tprintf(__T("BALL -> x: %d y: %d\n"), game.ball.x, game.ball.y);
+
 	};
 	
 	return 0;

@@ -11,7 +11,7 @@
 //Global vars
 
 HANDLE hConsole, hBallControl;
-bool LIVE;
+bool LIVE, keypressed;
 PLAYERS aux;
 GAMEDATA game;
 

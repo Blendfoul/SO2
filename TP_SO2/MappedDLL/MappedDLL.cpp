@@ -27,7 +27,6 @@ GAMEDATA RecieveBroadcast(GAMEDATA *pGame){
 	WaitForSingleObject(mutex_2, INFINITE);
 
 	pGame = pSharedGame;
-	//_tprintf(TEXT("CODE: %d\n"), pSharedGame->code);
 
 	ReleaseMutex(mutex_2);
 	ReleaseSemaphore(hCanWriteBroad, 1, NULL);
@@ -92,12 +91,12 @@ BOOL Login(PLAYERS *client)
 	hMem = CreateFileMapping(hFile, NULL, PAGE_READWRITE, 0, sizeof(SHAREDMEM), TEXT("Shared_1"));
 
 	hFileGame = CreateFile(NULL, GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
-	hMemGame = CreateFileMapping(hFileGame, NULL, PAGE_READWRITE, 0, sizeof(SHAREDMEM), TEXT("Shared_2"));
+	hMemGame = CreateFileMapping(hFileGame, NULL, PAGE_READWRITE, 0, sizeof(GAMEDATA), TEXT("Shared_2"));
 	
 	pShared = (SHAREDMEM *)MapViewOfFile(hMem, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(SHAREDMEM));
 	if (pShared == NULL)
 	{
-		_tprintf_s(TEXT("Erro de criação da view of file %zu\n"), _tcslen(TEXT("Erro de criação da view of file %d\n")), GetLastError());
+		_tprintf_s(TEXT("Erro de criação da view of file %lu\n"), GetLastError());
 
 		CloseHandle(hFile);
 		CloseHandle(hMem);
@@ -108,7 +107,7 @@ BOOL Login(PLAYERS *client)
 	pSharedGame = (GAMEDATA *)MapViewOfFile(hMem, FILE_MAP_READ, 0, 0, sizeof(GAMEDATA));
 	if (pSharedGame == NULL)
 	{
-		_tprintf_s(TEXT("Erro de criação da view of file %zu\n"), _tcslen(TEXT("Erro de criação da view of file %d\n")), GetLastError());
+		_tprintf_s(TEXT("Erro de criação da view of file %lu\n"), GetLastError());
 
 		CloseHandle(hFile);
 		CloseHandle(hMem);
@@ -135,10 +134,14 @@ BOOL Login(PLAYERS *client)
 }
 
 void CloseVars() {
+	UnmapViewOfFile(pSharedGame);
 	UnmapViewOfFile(pShared);
 	CloseHandle(mutex_1);
+	CloseHandle(mutex_2);
 	CloseHandle(hCanRead);
 	CloseHandle(hCanWrite);
 	CloseHandle(hMem);
 	CloseHandle(hFile);
+	CloseHandle(hFileGame);
+	CloseHandle(hMemGame);
 }
