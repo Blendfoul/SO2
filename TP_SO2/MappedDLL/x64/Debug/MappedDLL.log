@@ -1,6 +1,2 @@
 ﻿  MappedDLL.cpp
-c:\users\joao_\documents\so2\so2\tp_so2\mappeddll\mappeddll.cpp(100): warning C4474: 'wprintf_s' : too many arguments passed for format string
-  c:\users\joao_\documents\so2\so2\tp_so2\mappeddll\mappeddll.cpp(100): note: placeholders and their parameters expect 1 variadic arguments, but 2 were provided
-c:\users\joao_\documents\so2\so2\tp_so2\mappeddll\mappeddll.cpp(111): warning C4474: 'wprintf_s' : too many arguments passed for format string
-  c:\users\joao_\documents\so2\so2\tp_so2\mappeddll\mappeddll.cpp(111): note: placeholders and their parameters expect 1 variadic arguments, but 2 were provided
   MappedDLL.vcxproj -> C:\Users\joao_\Documents\SO2\SO2\TP_SO2\servidor\x64\Debug\MappedDLL.dll

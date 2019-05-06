@@ -26,7 +26,6 @@ int _tmain() {
 		_tprintf(TEXT("Utilizador Válido!\n"));
 	else {
 		_tprintf(TEXT("Utilizador Inválido!\n"));
-		_gettchar();
 		return EXIT_FAILURE;
 	}
 	hConsole = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)ConsoleInput, NULL, 0, &threadID[0]);
@@ -60,11 +59,7 @@ DWORD WINAPI ConsoleInput() {
 	bool key = false;
 
 	while (LIVE == true) {
-		if (aux.code == SERVERCLOSE) {
-			_tprintf(TEXT("Server shutdown!\n"));
-			LIVE = false;
-			break;
-		}
+	
 
 		fgetwc(stdin);
 		_tprintf_s(TEXT("Command -> "));
@@ -73,16 +68,25 @@ DWORD WINAPI ConsoleInput() {
 		SendMessages(&aux);
 		aux = RecieveMessage(&aux);
 
-		if (_tcscmp(aux.command, TEXT("top10")) == 0)
+		if (aux.code == SERVERCLOSE) {
+			_tprintf(TEXT("Server shutdown!\n"));
+			LIVE = false;
+			break;
+		}
+
+		if (_tcscmp(aux.command, TEXT("top10")) == 0) {
 			for (int i = 0; i < 10; i++)
 				_tprintf(__T("Top %d -> Autor: %s Pontuação: %d\n"), i + 1, aux.top.names[i], aux.top.points[i]);
+		
+			aux.top.points[0] = 1200;
+		}
 		else if (_tcscmp(aux.command, TEXT("logout")) == 0) {
 			LIVE = false;
 			break;
 		}
 
 		else if (_tcscmp(aux.command, TEXT("ball")) == 0) {
-
+	
 		}
 			
 	};
@@ -95,9 +99,9 @@ DWORD WINAPI Ball() {
 		game = RecieveBroadcast(&game);
 		
 		if (GetAsyncKeyState(VK_ESCAPE))
-			break;
+			_tcscpy_s(aux.command, TEXT(" "));
 		else if (_tcscmp(aux.command, TEXT("ball")) == 0)
-			_tprintf(__T("BALL -> x: %d y: %d\n"), game.ball.x, game.ball.y);
+			_tprintf(__T("BALL -> x: %d y: %d\n"), game.ball[game.out].x, game.ball[game.out].y);
 
 	};
 	

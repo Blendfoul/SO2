@@ -17,6 +17,8 @@ int _tmain(int argc, TCHAR *argv[])
     nPlayers = 0;
     DWORD threadID[3];
 	LIVE = true;
+	gamedata.in = 0;
+	gamedata.out = 0;
 
     hMutex = OpenMutex(MUTEX_ALL_ACCESS, false, TEXT("Mutex_1"));
 
@@ -36,15 +38,17 @@ int _tmain(int argc, TCHAR *argv[])
     hCanWriteBroad = CreateSemaphore(NULL, BUFFERS, BUFFERS, TEXT("Semaphore_3"));
     hCanReadBroad = CreateSemaphore(NULL, 0, BUFFERS, TEXT("Semaphore_4"));
     hFilePlayers = CreateFile(NULL, GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (hFilePlayers == NULL)
+		return EXIT_FAILURE;
     hMemPlayers = CreateFileMapping(hFilePlayers, NULL, PAGE_READWRITE, 0, sizeof(SHAREDMEM), TEXT("Shared_1"));
 	
 	hFileGame = CreateFile(NULL, GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
-	hMemGame = CreateFileMapping(hFilePlayers, NULL, PAGE_READWRITE, 0, sizeof(GAMEDATA), TEXT("Shared_2"));
+	hMemGame = CreateFileMapping(hFileGame, NULL, PAGE_READWRITE, 0, sizeof(GAMEDATA), TEXT("Shared_2"));
 
     if (hCanWrite == NULL || hCanRead == NULL || hMemPlayers == NULL || hFileGame == NULL || hMemGame == NULL)
     {
 		_tprintf(TEXT("Erro de criação de objectos do windows %lu\n"), GetLastError());
-        _gettchar();
+       //_gettchar();
         return EXIT_FAILURE;
     }
 
@@ -96,7 +100,7 @@ int _tmain(int argc, TCHAR *argv[])
         return EXIT_FAILURE;
     }
 
-	hMovBola = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)BallMovement, (LPVOID)&gamedata.ball, 0, &threadID[2]);
+	hMovBola = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)BallMovement, (LPVOID)NULL, 0, &threadID[2]);
 
 	if (hMovBola != NULL)
 		_tprintf(TEXT("Lancei uma thread com id %d\n"), threadID[2]);
@@ -108,7 +112,7 @@ int _tmain(int argc, TCHAR *argv[])
 	
 	WaitForSingleObject(hInput, INFINITE);
     WaitForSingleObject(hCons, INFINITE);
-    //WaitForSingleObject(hLogin, INFINITE);
+    WaitForSingleObject(hMovBola, INFINITE);
 
     UnmapViewOfFile(pBuf);
 
@@ -136,8 +140,8 @@ DWORD WINAPI ServerConsole() {
 	while (1) {
 		fgetwc(stdin);
 
-		_tprintf_s(TEXT("Command -> "), _tcslen(TEXT("Command -> ")));
-		_tscanf_s(TEXT("%[^\n]s"), local, MAX);
+		_tprintf(TEXT("Command -> "));
+		_tscanf_s(TEXT("%[^\n]s"), local, MAX - 1);
 
 		if (_tcscmp(local, TEXT("close")) == 0) {
 			message.players[message.in].code = SERVERCLOSE;
@@ -145,6 +149,11 @@ DWORD WINAPI ServerConsole() {
 			LIVE = false;
 			break;
 		}
+		else if(_tcscmp(local, TEXT("ball")) == 0)
+			while(!GetAsyncKeyState(VK_ESCAPE))
+				_tprintf(__T("BALL -> x: %d y: %d\n"), gamedata.ball[gamedata.out].x, gamedata.ball[gamedata.out].y);
+		else if(_tcscmp(local, TEXT("users")) == 0)
+			PrintPlayers();
 	};
 
 	_tprintf(TEXT("%s %d\n"), local, LIVE);
@@ -216,8 +225,13 @@ PLAYERS RecieveRequest()
     _tprintf(TEXT("Waiting for connection or requests\n"));
     WaitForSingleObject(hCanRead, INFINITE);
     WaitForSingleObject(hMutex, INFINITE);
+	
+	message = *pBuf;
 
-    message = *pBuf;
+	if (message.out == 10)
+		message.out = 0;
+
+	_tprintf(TEXT("ID: %d OUT: %d COMMAND: %s\n"), message.players[message.out].id, message.out, message.players[message.out].command);
 
     ReleaseMutex(hMutex);
     ReleaseSemaphore(hCanWrite, 1, NULL);
@@ -280,21 +294,42 @@ BOOL BuildReply(PLAYERS *pAction)
     WaitForSingleObject(hCanWrite, INFINITE);
     WaitForSingleObject(hMutex, INFINITE);
 
-    message.players[message.in] = *pAction;
-    CopyMemory(pBuf, &message, sizeof(SHAREDMEM));
+	if(message.players[message.in].code == SERVERCLOSE)
+		message.players[message.in + 2] = *pAction;
+	else
+		message.players[message.in] = *pAction;
+	message.in = (message.in)++ % BUFFERS;
+	if (message.in == 10)
+		message.in = 0;
+	CopyMemory(pBuf, &message, sizeof(SHAREDMEM));
 
+	
+	
     ReleaseMutex(hMutex);
     ReleaseSemaphore(hCanRead, 1, NULL);
     return true;
 }
 
-BOOL SendBroadcast() {
+BOOL SendBroadcast(BALL ball) {
 
 	WaitForSingleObject(hCanWriteBroad, INFINITE);
 	WaitForSingleObject(hMutexBroad, INFINITE);
-	
-	//_tprintf(TEXT("CODE: %d\n"),gamedata.code);
+
+	gamedata.ball[gamedata.in] = ball;
+
+	if (gamedata.in == 10)
+		gamedata.in = 0;
+	else
+		gamedata.in++;
+
+	if (gamedata.out == 10)
+		gamedata.out = 0;
+	else
+		gamedata.out++;
+
 	CopyMemory(pGameDataShared, &gamedata, sizeof(GAMEDATA));
+
+	
 
 	ReleaseMutex(hMutexBroad);
 	ReleaseSemaphore(hCanReadBroad, 1, NULL);
@@ -309,10 +344,11 @@ BOOL SendBroadcast() {
 // para a versão meta 2, fazer consulta das posicoes dos blocos.
 DWORD WINAPI BallMovement(LPVOID lparam)
 {
-	BALL* ball = (BALL*)lparam;
-	ball->x = MAX_SCREEN_WIDTH / 2;  // metade de 1 ecra HD, fica ao centro.
-	ball->y = MAX_SCREEN_HEIGHT / 2; // metade de 1 ecra HD, fica ao centro.
-	ball->trajectory = MOVE_BALL_UPRIGHT;
+	BALL ball = {};
+	ball.x = MAX_SCREEN_WIDTH / 2;  // metade de 1 ecra HD, fica ao centro.
+	ball.y = MAX_SCREEN_HEIGHT / 2; // metade de 1 ecra HD, fica ao centro.
+	ball.trajectory = MOVE_BALL_UPRIGHT;
+	ball.id = 0;
 
 	while (LIVE == true) {
 
@@ -320,109 +356,109 @@ DWORD WINAPI BallMovement(LPVOID lparam)
 		/*
 		*	o Tricky disto é que mudamos a posição atual da bola e mudamos a trajetoria (para fazermos o proximo check, and so on...)
 		*/
-		switch (ball->trajectory)
+		switch (ball.trajectory)
 		{
 		case MOVE_BALL_UPRIGHT:
 			
-			if (ball->y - 1 == 0) 
+			if (ball.y - 1 == 0) 
 			{
-				ball->y++;//descer
-				if (ball->x + 1 == MAX_SCREEN_WIDTH || 0) {
-					ball->x--;							// obstaculo superior direito
-					ball->trajectory = MOVE_BALL_DOWNLEFT;
+				ball.y++;//descer
+				if (ball.x + 1 == MAX_SCREEN_WIDTH || 0) {
+					ball.x--;							// obstaculo superior direito
+					ball.trajectory = MOVE_BALL_DOWNLEFT;
 				}
 				else {
-					ball->x++;							// obstaculo superior
-					ball->trajectory = MOVE_BALL_DOWNRIGHT;
+					ball.x++;							// obstaculo superior
+					ball.trajectory = MOVE_BALL_DOWNRIGHT;
 				}
 			}
 			else{
-				ball->y--;//subir
-				if (ball->x + 1 == MAX_SCREEN_WIDTH || 0) {
-					ball->x--;							// obstaculo direito
-					ball->trajectory = MOVE_BALL_UPLEFT;
+				ball.y--;//subir
+				if (ball.x + 1 == MAX_SCREEN_WIDTH || 0) {
+					ball.x--;							// obstaculo direito
+					ball.trajectory = MOVE_BALL_UPLEFT;
 				}
 				else {									// sem obstaculo
-					ball->x++;
-					ball->trajectory = MOVE_BALL_UPRIGHT;
+					ball.x++;
+					ball.trajectory = MOVE_BALL_UPRIGHT;
 				}
 			}
 		break; 
 		
 		case MOVE_BALL_UPLEFT:
 			
-			if (ball->y - 1 == 0 || 0){ 
-				ball->y++;
-				if (ball->x - 1 == 0 || 0 ) {			// obstaculo superior esquerdo
-					ball->x++;
-					ball->trajectory = MOVE_BALL_DOWNRIGHT;
+			if (ball.y - 1 == 0 || 0){ 
+				ball.y++;
+				if (ball.x - 1 == 0 || 0 ) {			// obstaculo superior esquerdo
+					ball.x++;
+					ball.trajectory = MOVE_BALL_DOWNRIGHT;
 				}
 				else {									// obstaculo superior
-					ball->x--;
-					ball->trajectory = MOVE_BALL_DOWNLEFT;
+					ball.x--;
+					ball.trajectory = MOVE_BALL_DOWNLEFT;
 				}
 			}
 			else  
 			{
-				ball->y--;
-				if (ball->x - 1 == 0 || 0) {			
-					ball->x++;							// obstaculo esquerdo
-					ball->trajectory = MOVE_BALL_UPRIGHT;
+				ball.y--;
+				if (ball.x - 1 == 0 || 0) {			
+					ball.x++;							// obstaculo esquerdo
+					ball.trajectory = MOVE_BALL_UPRIGHT;
 				}
 				else {
-					ball->x--;							// sem obstaculo
-					ball->trajectory = MOVE_BALL_UPLEFT;
+					ball.x--;							// sem obstaculo
+					ball.trajectory = MOVE_BALL_UPLEFT;
 				}
 			}
 
 		case MOVE_BALL_DOWNRIGHT:
 			
-			if (ball->y + 1 == MAX_SCREEN_HEIGHT || 0) {
-				ball->y--;
-				if (ball->x + 1 == MAX_SCREEN_WIDTH || 0) {
-					ball->x--;
-					ball->trajectory = MOVE_BALL_UPLEFT;
+			if (ball.y + 1 == MAX_SCREEN_HEIGHT || 0) {
+				ball.y--;
+				if (ball.x + 1 == MAX_SCREEN_WIDTH || 0) {
+					ball.x--;
+					ball.trajectory = MOVE_BALL_UPLEFT;
 				}
 				else {
-					ball->x++;
-					ball->trajectory = MOVE_BALL_UPRIGHT;
+					ball.x++;
+					ball.trajectory = MOVE_BALL_UPRIGHT;
 				}
 			}
 			else {
-				ball->y++;
-				if (ball->x + 1 == MAX_SCREEN_WIDTH || 0) {
-					ball->x--;
-					ball->trajectory = MOVE_BALL_DOWNLEFT;
+				ball.y++;
+				if (ball.x + 1 == MAX_SCREEN_WIDTH || 0) {
+					ball.x--;
+					ball.trajectory = MOVE_BALL_DOWNLEFT;
 				}
 				else {
-					ball->x++;
-					ball->trajectory = MOVE_BALL_DOWNRIGHT;
+					ball.x++;
+					ball.trajectory = MOVE_BALL_DOWNRIGHT;
 				}
 			}
 			break;
 
 		case MOVE_BALL_DOWNLEFT:
 			
-			if (ball->y + 1 == MAX_SCREEN_HEIGHT || 0) {
-				ball->y--;
-				if (ball->x - 1 == 0 || 0) {
-					ball->x++;
-					ball->trajectory = MOVE_BALL_UPRIGHT;
+			if (ball.y + 1 == MAX_SCREEN_HEIGHT || 0) {
+				ball.y--;
+				if (ball.x - 1 == 0 || 0) {
+					ball.x++;
+					ball.trajectory = MOVE_BALL_UPRIGHT;
 				}
 				else {
-					ball->x--;
-					ball->trajectory = MOVE_BALL_UPLEFT;
+					ball.x--;
+					ball.trajectory = MOVE_BALL_UPLEFT;
 				}
 			}
 			else{
-				ball->y++;
-				if (ball->x - 1 == 0 || 0) {
-					ball->x++;
-					ball->trajectory = MOVE_BALL_DOWNRIGHT;
+				ball.y++;
+				if (ball.x - 1 == 0 || 0) {
+					ball.x++;
+					ball.trajectory = MOVE_BALL_DOWNRIGHT;
 				}
 				else {
-					ball->x--;
-					ball->trajectory = MOVE_BALL_DOWNLEFT;
+					ball.x--;
+					ball.trajectory = MOVE_BALL_DOWNLEFT;
 				}
 			}
 
@@ -430,7 +466,8 @@ DWORD WINAPI BallMovement(LPVOID lparam)
 			break;
 		}
 
-		SendBroadcast();
+		//_tprintf(__T("BALL -> X: %d Y: %d Traj: %d ID: %d\n"), ball.x, ball.y, ball.trajectory, ball.id);
+ 		SendBroadcast(ball);
 	}
 	return 0;
 }

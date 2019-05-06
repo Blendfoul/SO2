@@ -55,7 +55,8 @@ typedef struct
 
 typedef struct
 {
-	BALL ball;
+	int in, out;
+	BALL ball[10];
 }GAMEDATA;
 
 // TODO: reference additional headers your program requires here
