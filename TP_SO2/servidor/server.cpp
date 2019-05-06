@@ -303,7 +303,7 @@ BOOL SendBroadcast() {
 
 //TODO: Lógica Jogo
 
-//Tem controlo de esclusao mutua para a var controlDisplacement, que pode nao pode ser alterada
+//Tem controlo de esclusao mutua para a var Trajectory, que pode nao pode ser alterada
 //no momento em que a thread está a ler o seu valor.
 //
 // para a versão meta 2, fazer consulta das posicoes dos blocos.
