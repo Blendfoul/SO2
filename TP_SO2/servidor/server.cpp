@@ -70,7 +70,6 @@ int _tmain(int argc, TCHAR *argv[])
         CloseHandle(hCanWrite);
         CloseHandle(hMemPlayers);
 		CloseHandle(hMemGame);
-        _gettchar();
         return EXIT_FAILURE;
 	}
 
@@ -108,7 +107,7 @@ int _tmain(int argc, TCHAR *argv[])
         return EXIT_FAILURE;
     }
 
-	hMovBola = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)BallMovement, (LPVOID)NULL, 0, &threadID[2]);
+	hMovBola = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)BallMovement, NULL, 0, &threadID[2]);
 
 	if (hMovBola != NULL)
 		_tprintf(TEXT("Lancei uma thread com id %d\n"), threadID[2]);
@@ -156,6 +155,7 @@ DWORD WINAPI ServerConsole() {
 		if (_tcscmp(local, TEXT("close")) == 0) {
 			message.players[message.in].code = SERVERCLOSE;
 			BuildReply(&message.players[message.in]);
+			ReleaseSemaphore(hCanWriteBroad, 1, NULL);
 			LIVE = false;
 			break;
 		}

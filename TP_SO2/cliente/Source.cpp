@@ -99,7 +99,7 @@ DWORD WINAPI Ball() {
 		if (GetAsyncKeyState(VK_ESCAPE))
 			_tcscpy_s(aux.command, TEXT(" "));
 		else if (_tcscmp(aux.command, TEXT("ball")) == 0) {
-			gotoxy(10, 10);
+			gotoxy(10, 25);
 			_tprintf(__T("BALL -> x: %d y: %d\n"), game.ball[game.out].x, game.ball[game.out].y);
 			
 		}
