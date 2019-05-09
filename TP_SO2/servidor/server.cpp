@@ -277,7 +277,14 @@ PLAYERS AddPlayerToArray(PLAYERS *pAction)
 {
     pAction->score = 0;
     pAction->code = USRVALID;
-    players[nPlayers] = *pAction;
+	players[nPlayers].id = pAction->id;
+	players[nPlayers].id = pAction->code;
+	_tcscpy_s(players[nPlayers].username,sizeof(pAction->username), pAction->username);
+	_tcscpy_s(players[nPlayers].command,sizeof(pAction->command), pAction->command);
+	players[nPlayers].id = pAction->pos;
+	players[nPlayers].id = pAction->score;
+	_tcscpy_s(players[nPlayers].command, sizeof(pAction->command), pAction->command);
+//    players[nPlayers] = *pAction;
     _tprintf(TEXT("Sucess %d\n"), pAction->code);
     return *pAction;
 }
@@ -352,7 +359,7 @@ BOOL SendBroadcast(BALL *ball) {
 
 //TODO: Lógica Jogo
 
-//Tem controlo de esclusao mutua para a var controlDisplacement, que pode nao pode ser alterada
+//Tem controlo de esclusao mutua para a var Trajectory, que pode nao pode ser alterada
 //no momento em que a thread está a ler o seu valor.
 //
 // para a versão meta 2, fazer consulta das posicoes dos blocos.
