@@ -18,3 +18,4 @@ GAMEDATA game;
 // Function headers
 DWORD WINAPI ConsoleInput();
 DWORD WINAPI Ball();
+void gotoxy(int x, int y);

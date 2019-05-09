@@ -60,7 +60,6 @@ DWORD WINAPI ConsoleInput() {
 
 	while (LIVE == true) {
 	
-
 		fgetwc(stdin);
 		_tprintf_s(TEXT("Command -> "));
 		_tscanf_s(TEXT("%[^\n]s"), aux.command, MAX);
@@ -78,7 +77,6 @@ DWORD WINAPI ConsoleInput() {
 			for (int i = 0; i < 10; i++)
 				_tprintf(__T("Top %d -> Autor: %s Pontuação: %d\n"), i + 1, aux.top.names[i], aux.top.points[i]);
 		
-			aux.top.points[0] = 1200;
 		}
 		else if (_tcscmp(aux.command, TEXT("logout")) == 0) {
 			LIVE = false;
@@ -86,7 +84,7 @@ DWORD WINAPI ConsoleInput() {
 		}
 
 		else if (_tcscmp(aux.command, TEXT("ball")) == 0) {
-	
+			_tprintf(TEXT("AQUI!"));
 		}
 			
 	};
@@ -100,10 +98,20 @@ DWORD WINAPI Ball() {
 		
 		if (GetAsyncKeyState(VK_ESCAPE))
 			_tcscpy_s(aux.command, TEXT(" "));
-		else if (_tcscmp(aux.command, TEXT("ball")) == 0)
+		else if (_tcscmp(aux.command, TEXT("ball")) == 0) {
+			gotoxy(10, 10);
 			_tprintf(__T("BALL -> x: %d y: %d\n"), game.ball[game.out].x, game.ball[game.out].y);
-
+			
+		}
 	};
 	
 	return 0;
+}
+
+void gotoxy(int x, int y)
+{
+	COORD coord;
+	coord.X = x;
+	coord.Y = y;
+	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
 }

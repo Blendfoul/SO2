@@ -4,7 +4,7 @@ using namespace std;
 
 SHAREDMEM message;
 GAMEDATA gamedata;
-vector<PLAYERS> players(MAX_PLAYERS);
+PLAYERS *players;
 
 int _tmain(int argc, TCHAR *argv[])
 {
@@ -20,7 +20,7 @@ int _tmain(int argc, TCHAR *argv[])
 	gamedata.in = 0;
 	gamedata.out = 0;
 
-    hMutex = OpenMutex(MUTEX_ALL_ACCESS, false, TEXT("Mutex_1"));
+    hMutex = OpenMutex(SYNCHRONIZE, false, TEXT("Mutex_1"));
 
     if (hMutex == NULL)
     {
@@ -32,6 +32,14 @@ int _tmain(int argc, TCHAR *argv[])
 		fgetwc(stdin);
         return EXIT_FAILURE;
     }
+
+	players = (PLAYERS *) malloc(sizeof(PLAYERS) * MAX_PLAYERS);
+
+	if (players == NULL) {
+		_tprintf(TEXT("Error alocating array!\n"));
+		return EXIT_FAILURE;
+	}
+
     hMutexBroad = CreateMutex(NULL, FALSE, TEXT("Mutex_2"));
     hCanWrite = CreateSemaphore(NULL, BUFFERS, BUFFERS, TEXT("Semaphore_1"));
     hCanRead = CreateSemaphore(NULL, 0, BUFFERS, TEXT("Semaphore_2"));
@@ -129,6 +137,8 @@ int _tmain(int argc, TCHAR *argv[])
 	CloseHandle(hCanReadBroad);
 	CloseHandle(hCanWriteBroad);
 
+	free(players);
+
     return EXIT_SUCCESS;
 }
 
@@ -150,13 +160,12 @@ DWORD WINAPI ServerConsole() {
 			break;
 		}
 		else if(_tcscmp(local, TEXT("ball")) == 0)
-			while(!GetAsyncKeyState(VK_ESCAPE))
-				_tprintf(__T("BALL -> x: %d y: %d\n"), gamedata.ball[gamedata.out].x, gamedata.ball[gamedata.out].y);
+				_tprintf(__T("BALL -> x: %d y: %d\n"), gamedata.ball[gamedata.in].x, gamedata.ball[gamedata.in].y);
 		else if(_tcscmp(local, TEXT("users")) == 0)
 			PrintPlayers();
 	};
 
-	_tprintf(TEXT("%s %d\n"), local, LIVE);
+	//_tprintf(TEXT("%s %d\n"), local, LIVE);
 	
 	return 0;
 }
@@ -165,7 +174,7 @@ void PrintPlayers()
 {
     for (int i = 0; i < nPlayers; i++)
     {
-        _tprintf(TEXT("%s\t%d\t%d\n"), players.at(i).username, players.at(i).id, players.at(i).code);
+        _tprintf(TEXT("%s\t%d\t%d\n"), players[i].username, players[i].id, players[i].code);
     }
 }
 
@@ -246,13 +255,19 @@ BOOL RemovePlayerFromArray(PLAYERS *pPlayers)
 {
     int pos = -1;
 
-    for (int i = 0; i < players.size(); i++)
+    for (int i = 0; i < MAX_PLAYERS; i++)
         if (pPlayers->id == players[i].id)
             pos = i;
 
     if (pos != -1)
     {
-        players.erase(players.begin() + pos);
+        //players.erase(players.begin() + pos);
+		for (int i = pos; i < nPlayers; i++)
+		{
+			if ((i + 1) != nPlayers)
+				players[i] = players[i + 1];
+		}
+
         return true;
     }
     return false;
@@ -310,26 +325,25 @@ BOOL BuildReply(PLAYERS *pAction)
     return true;
 }
 
-BOOL SendBroadcast(BALL ball) {
+BOOL SendBroadcast(BALL *ball) {
 
 	WaitForSingleObject(hCanWriteBroad, INFINITE);
 	WaitForSingleObject(hMutexBroad, INFINITE);
 
-	gamedata.ball[gamedata.in] = ball;
+	gamedata.ball[gamedata.in] = *ball;
+	//_tprintf(__T("BALL -> x: %d y: %d IN: %d OUT: %d\n"), gamedata.ball[gamedata.in].x, gamedata.ball[gamedata.in].y, gamedata.in, gamedata.out);
 
+	if (gamedata.out == 10)
+		gamedata.out = 0;
+	
 	if (gamedata.in == 10)
 		gamedata.in = 0;
 	else
 		gamedata.in++;
 
-	if (gamedata.out == 10)
-		gamedata.out = 0;
-	else
-		gamedata.out++;
-
 	CopyMemory(pGameDataShared, &gamedata, sizeof(GAMEDATA));
 
-	
+		gamedata.out++;
 
 	ReleaseMutex(hMutexBroad);
 	ReleaseSemaphore(hCanReadBroad, 1, NULL);
@@ -371,6 +385,8 @@ DWORD WINAPI BallMovement(LPVOID lparam)
 					ball.x++;							// obstaculo superior
 					ball.trajectory = MOVE_BALL_DOWNRIGHT;
 				}
+				//_tprintf(__T("BALL -> X: %d Y: %d Traj: %d ID: %d\n"), ball.x, ball.y, ball.trajectory, ball.id);
+				SendBroadcast(&ball);
 			}
 			else{
 				ball.y--;//subir
@@ -382,6 +398,8 @@ DWORD WINAPI BallMovement(LPVOID lparam)
 					ball.x++;
 					ball.trajectory = MOVE_BALL_UPRIGHT;
 				}
+				//_tprintf(__T("BALL -> X: %d Y: %d Traj: %d ID: %d\n"), ball.x, ball.y, ball.trajectory, ball.id);
+				SendBroadcast(&ball);
 			}
 		break; 
 		
@@ -397,6 +415,8 @@ DWORD WINAPI BallMovement(LPVOID lparam)
 					ball.x--;
 					ball.trajectory = MOVE_BALL_DOWNLEFT;
 				}
+				//_tprintf(__T("BALL -> X: %d Y: %d Traj: %d ID: %d\n"), ball.x, ball.y, ball.trajectory, ball.id);
+				SendBroadcast(&ball);
 			}
 			else  
 			{
@@ -409,6 +429,8 @@ DWORD WINAPI BallMovement(LPVOID lparam)
 					ball.x--;							// sem obstaculo
 					ball.trajectory = MOVE_BALL_UPLEFT;
 				}
+				//_tprintf(__T("BALL -> X: %d Y: %d Traj: %d ID: %d\n"), ball.x, ball.y, ball.trajectory, ball.id);
+				SendBroadcast(&ball);
 			}
 
 		case MOVE_BALL_DOWNRIGHT:
@@ -423,6 +445,8 @@ DWORD WINAPI BallMovement(LPVOID lparam)
 					ball.x++;
 					ball.trajectory = MOVE_BALL_UPRIGHT;
 				}
+				//_tprintf(__T("BALL -> X: %d Y: %d Traj: %d ID: %d\n"), ball.x, ball.y, ball.trajectory, ball.id);
+				SendBroadcast(&ball);
 			}
 			else {
 				ball.y++;
@@ -434,6 +458,8 @@ DWORD WINAPI BallMovement(LPVOID lparam)
 					ball.x++;
 					ball.trajectory = MOVE_BALL_DOWNRIGHT;
 				}
+				//_tprintf(__T("BALL -> X: %d Y: %d Traj: %d ID: %d\n"), ball.x, ball.y, ball.trajectory, ball.id);
+				SendBroadcast(&ball);
 			}
 			break;
 
@@ -449,6 +475,8 @@ DWORD WINAPI BallMovement(LPVOID lparam)
 					ball.x--;
 					ball.trajectory = MOVE_BALL_UPLEFT;
 				}
+				//_tprintf(__T("BALL -> X: %d Y: %d Traj: %d ID: %d\n"), ball.x, ball.y, ball.trajectory, ball.id);
+				SendBroadcast(&ball);
 			}
 			else{
 				ball.y++;
@@ -460,14 +488,15 @@ DWORD WINAPI BallMovement(LPVOID lparam)
 					ball.x--;
 					ball.trajectory = MOVE_BALL_DOWNLEFT;
 				}
+				//_tprintf(__T("BALL -> X: %d Y: %d Traj: %d ID: %d\n"), ball.x, ball.y, ball.trajectory, ball.id);
+				SendBroadcast(&ball);
 			}
 
 		default:
 			break;
 		}
 
-		//_tprintf(__T("BALL -> X: %d Y: %d Traj: %d ID: %d\n"), ball.x, ball.y, ball.trajectory, ball.id);
- 		SendBroadcast(ball);
+		
 	}
 	return 0;
 }

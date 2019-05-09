@@ -43,6 +43,6 @@ DWORD WINAPI BallMovement(LPVOID lparam);
 
 PLAYERS SaveTopTen(PLAYERS *pAction);
 
-BOOL SendBroadcast(BALL ball);
+BOOL SendBroadcast(BALL *ball);
 DWORD WINAPI ServerConsole();
 void PrintPlayers();
