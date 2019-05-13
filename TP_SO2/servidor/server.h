@@ -4,11 +4,13 @@
 #include <tchar.h>
 #include <fcntl.h>
 #include <io.h>
-#include <iostream>
-#include <vector>
-#include <string>
+#include <stdio.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include "../MappedDll/header.h"
+
 
 #define MAXT 256
 #define MAX_PLAYERS 5
@@ -21,14 +23,17 @@
 
 //Global Variables
 int nPlayers;
+int nBalls;
+int *ballThreadId = NULL;
 bool LIVE;
 BOOL gameOn;
 HANDLE hCanWrite, hCanRead, hCanReadBroad, hCanWriteBroad, hMemPlayers, hFilePlayers, hMemGame, hFileGame;
-HANDLE hMutex, hMutexBroad;
-HANDLE hCons, hMovBola, hInput;
-HANDLE hLogin;
+HANDLE hMutex = NULL, hMutexBroad = NULL;
+HANDLE hCons = NULL, hInput = NULL;
+HANDLE *hMovBola = NULL;
+HANDLE hLogin = NULL;
 SHAREDMEM *pBuf = NULL;
-GAMEDATA *pGameDataShared;
+GAMEDATA *pGameDataShared = NULL;
 
 //Function prototype
 DWORD WINAPI ServerInput();
@@ -46,3 +51,8 @@ PLAYERS SaveTopTen(PLAYERS *pAction);
 BOOL SendBroadcast(BALL *ball);
 DWORD WINAPI ServerConsole();
 void PrintPlayers();
+HANDLE * CreateHandleArray(HANDLE* handle, int* tam);
+int * ballIdArray(int* threadId, int* tam);
+BALL* CreateBallArray(BALL* ball, int* tam);
+BOOL AddBall();
+BOOL RemoveBall();

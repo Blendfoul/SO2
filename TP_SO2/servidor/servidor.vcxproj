@@ -147,7 +147,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="server.cpp" />
+    <ClCompile Include="server.c" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MappedDLL\MappedDLL.vcxproj">

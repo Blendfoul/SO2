@@ -16,6 +16,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <memory.h>
+#include <stdbool.h>
+#include <stdlib.h>
 
 #define BufferSize 100
 #define BUFFERS 10
@@ -56,7 +58,8 @@ typedef struct
 typedef struct
 {
 	int in, out;
-	BALL ball[10];
+	int nBalls;
+	BALL ball[10][5];
 }GAMEDATA;
 
 // TODO: reference additional headers your program requires here

@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="MappedDLL.cpp" />
+    <ClCompile Include="MappedDLL.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="header.h" />
