@@ -19,6 +19,8 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#define PIPENAME TEXT("\\\\%s\\pipe\\teste")
+
 #define BufferSize 100
 #define BUFFERS 10
 #define MAX 256
@@ -37,6 +39,7 @@ typedef struct
     int id;
     int code;
     TCHAR username[MAX];
+	TCHAR ipAdress[MAX];
 	TCHAR command[MAX];
     int pos;
     int score;

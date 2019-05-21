@@ -129,25 +129,36 @@ int _tmain(int argc, TCHAR *argv[])
 
     UnmapViewOfFile(pBuf);
 
-    CloseHandle(hCons);
-	CloseHandle(hMovBola);
-	CloseHandle(hCanRead);
-    CloseHandle(hCanWrite);
-    CloseHandle(hMemPlayers);
-    CloseHandle(hFilePlayers);
-	CloseHandle(hMemGame);
-	CloseHandle(hFileGame);
-	if(hMutex != NULL)
-		CloseHandle(hMutex);
-	if (hMutexBroad != NULL)
-		CloseHandle(hMutexBroad);
-	CloseHandle(hCanReadBroad);
-	CloseHandle(hCanWriteBroad);
-
-	if(hMovBola != NULL)
+	//Dinamyc Mem
+	if (hMovBola != NULL)
 		free(hMovBola);
 	free(ballThreadId);
 	free(players);
+
+	//Semaphore Players
+	CloseHandle(hCanRead);
+	CloseHandle(hCanWrite);
+
+	//Semaphore GameData
+	CloseHandle(hCanReadBroad);
+	CloseHandle(hCanWriteBroad);
+
+	//Mutexes
+	if (hMutex != NULL)
+		CloseHandle(hMutex);
+	if (hMutexBroad != NULL)
+		CloseHandle(hMutexBroad);
+
+	//Shared Mem
+	CloseHandle(hMemPlayers);
+	CloseHandle(hFilePlayers);
+	CloseHandle(hMemGame);
+	CloseHandle(hFileGame);
+    
+	//Threads
+	//CloseHandle(hCons);
+	//CloseHandle(hMovBola);
+	//CloseHandle(hInput);
 
     return EXIT_SUCCESS;
 }
@@ -158,7 +169,7 @@ DWORD WINAPI ServerConsole() {
 	TCHAR local[MAX];
 	local[0] = '\0';
 
-	while (1) {
+	while (LIVE == true) {
 		fgetwc(stdin);
 
 		_tprintf(TEXT("Command -> "));
@@ -171,7 +182,7 @@ DWORD WINAPI ServerConsole() {
 				ReleaseSemaphore(hCanWriteBroad, 1, NULL);
 				ReleaseSemaphore(hCanWrite, 1, NULL);
 				LIVE = false;
-				break;
+
 			}
 			else {
 				_tprintf(TEXT("Ainda existem %d utilizadores ligados!\n"), nPlayers);
@@ -334,10 +345,8 @@ BOOL BuildReply(PLAYERS *pAction)
     WaitForSingleObject(hCanWrite, INFINITE);
     WaitForSingleObject(hMutex, INFINITE);
 
-	/*if(message.players[message.in].code == SERVERCLOSE)
-		message.players[message.in + 2] = *pAction;
-	else*/
-		message.players[message.in] = *pAction;
+	message.players[message.in] = *pAction;
+	
 	message.in = (message.in)++ % BUFFERS;
 	if (message.in == 10)
 		message.in = 0;

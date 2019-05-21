@@ -15,6 +15,8 @@ HANDLE hMem, hMemGame;
 HANDLE hFile, hFileGame;
 HANDLE mutex_1, mutex_2;
 
+BOOL InitSharedMem();
+
 BOOL TesteDLL(PLAYERS *client)
 {
 	printf("TesteServer");
@@ -80,9 +82,29 @@ BOOL SendMessages(PLAYERS *client)
 
 BOOL Login(PLAYERS *client)
 {
+
+	InitSharedMem();
+	SendMessages(client);
+
+	return true;
+}
+
+void CloseVars() {
+	UnmapViewOfFile(pSharedGame);
+	UnmapViewOfFile(pShared);
+	//CloseHandle(mutex_1);
+	//CloseHandle(mutex_2);
+	CloseHandle(hCanRead);
+	CloseHandle(hCanWrite);
+	CloseHandle(hMem);
+	CloseHandle(hMemGame);
+}
+
+BOOL InitSharedMem(){
 	mutex_1 = OpenMutex(MUTEX_ALL_ACCESS, 0, TEXT("Mutex_1"));
 	if (mutex_1 == NULL)
 	{
+		_tprintf(TEXT("Servidor não está ligado!\n"));
 		//CloseHandle(mutex_1);
 		return EXIT_FAILURE;
 	}
@@ -101,13 +123,13 @@ BOOL Login(PLAYERS *client)
 	hCanReadBroad = OpenSemaphore(SEMAPHORE_ALL_ACCESS, 0, TEXT("Semaphore_4"));
 
 	if (hCanRead == NULL || hCanWrite == NULL || hCanReadBroad == NULL || hCanWriteBroad == NULL) {
-		
+
 		return EXIT_FAILURE;
 	}
 
 	hFile = CreateFile(TEXT("Shared"), GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (hFile == NULL)
-		return EXIT_FAILURE ;
+		return EXIT_FAILURE;
 
 	hMem = CreateFileMapping(hFile, NULL, PAGE_READWRITE, 0, sizeof(SHAREDMEM), TEXT("Shared_1"));
 	if (hMem == NULL)
@@ -121,7 +143,7 @@ BOOL Login(PLAYERS *client)
 	if (hMemGame == NULL)
 		return EXIT_FAILURE;
 
-	pShared = (SHAREDMEM *)MapViewOfFile(hMem, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(SHAREDMEM));
+	pShared = (SHAREDMEM*)MapViewOfFile(hMem, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(SHAREDMEM));
 	if (pShared == NULL)
 	{
 		_tprintf_s(TEXT("Erro de criação da view of file %lu\n"), GetLastError());
@@ -130,7 +152,7 @@ BOOL Login(PLAYERS *client)
 		return EXIT_FAILURE;
 	}
 
-	pSharedGame = (GAMEDATA *)MapViewOfFile(hMemGame, FILE_MAP_READ, 0, 0, sizeof(GAMEDATA));
+	pSharedGame = (GAMEDATA*)MapViewOfFile(hMemGame, FILE_MAP_READ, 0, 0, sizeof(GAMEDATA));
 	if (pSharedGame == NULL)
 	{
 		_tprintf_s(TEXT("Erro de criação da view of file %lu\n"), GetLastError());
@@ -139,29 +161,5 @@ BOOL Login(PLAYERS *client)
 		CloseHandle(hMemGame);
 		return EXIT_FAILURE;
 	}
-	
-	player.in = 0;
-	player.out = 0;
-		
-	WaitForSingleObject(hCanWrite, INFINITE);
-	WaitForSingleObject(mutex_1, INFINITE);
-
-	player.players[player.in] = *client;
-	CopyMemory(pShared, &player, sizeof(SHAREDMEM));
-
-	ReleaseMutex(mutex_1);
-	ReleaseSemaphore(hCanRead, 1, NULL);
-
-	return true;
-}
-
-void CloseVars() {
-	UnmapViewOfFile(pSharedGame);
-	UnmapViewOfFile(pShared);
-	//CloseHandle(mutex_1);
-	//CloseHandle(mutex_2);
-	CloseHandle(hCanRead);
-	CloseHandle(hCanWrite);
-	CloseHandle(hMem);
-	CloseHandle(hMemGame);
+	return EXIT_SUCCESS;
 }
