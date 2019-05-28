@@ -28,6 +28,7 @@
 #define USRINVALID 2
 #define LOGOUTSUCCESS 9
 #define SERVERCLOSE 8
+#define IPSIZE 15
 
 typedef struct {
 	TCHAR names[10][MAX];
@@ -39,7 +40,7 @@ typedef struct
     int id;
     int code;
     TCHAR username[MAX];
-	TCHAR ipAdress[MAX];
+	TCHAR ipAdress[IPSIZE];
 	TCHAR command[MAX];
     int pos;
     int score;
@@ -70,10 +71,16 @@ typedef struct
 	MAPPEDDLL_IMP_API BOOL TesteDLL();
 
 	MAPPEDDLL_IMP_API BOOL Login(PLAYERS *client);
+	MAPPEDDLL_IMP_API BOOL Login(PLAYERS *client, TCHAR *ipAdress);
+
 
 	MAPPEDDLL_IMP_API PLAYERS RecieveMessage(PLAYERS * client);
+	MAPPEDDLL_IMP_API PLAYERS RecieveMessage(PLAYERS * client, TCHAR *ipAdress);
+
 	MAPPEDDLL_IMP_API BOOL SendMessages(PLAYERS * client);
+	MAPPEDDLL_IMP_API BOOL SendMessages(PLAYERS* client, TCHAR* ipAdress);
 
 	MAPPEDDLL_IMP_API GAMEDATA RecieveBroadcast(GAMEDATA *pGame);
 
 	MAPPEDDLL_IMP_API void CloseVars();
+	MAPPEDDLL_IMP_API void DisconnectPipes();

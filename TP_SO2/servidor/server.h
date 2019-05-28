@@ -56,3 +56,18 @@ int * ballIdArray(int* threadId, int* tam);
 BALL* CreateBallArray(BALL* ball, int* tam);
 BOOL AddBall();
 BOOL RemoveBall();
+BOOL ConnectToNewClient(HANDLE hPipe, LPOVERLAPPED lpo);
+
+typedef struct
+{
+	OVERLAPPED oOverlap;
+	HANDLE hPipeInst;
+	PLAYERS player;
+	DWORD cbRead;
+	PLAYERS playerReply;
+	DWORD cbToWrite;
+	DWORD dwState;
+	BOOL fPendingIO;
+} PIPEINST, * LPPIPEINST;
+
+//PLAYERS ShowTop10(PLAYERS* pAction);
