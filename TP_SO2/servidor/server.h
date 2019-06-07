@@ -20,6 +20,23 @@
 #define MOVE_BALL_UPLEFT 1
 #define MOVE_BALL_DOWNRIGHT 2
 #define MOVE_BALL_DOWNLEFT 3
+#define PIPE_TIMEOUT 5000
+#define CONNECTING_STATE 0 
+#define READING_STATE 1 
+#define WRITING_STATE 2
+
+typedef struct
+{
+	OVERLAPPED oOverlap;
+	HANDLE hPipeInst;
+	PLAYERS player;
+	DWORD cbRead;
+	PLAYERS playerReply;
+	DWORD cbToWrite;
+	DWORD dwState;
+	BOOL fPendingIO;
+} PIPEINST, * LPPIPEINST;
+
 
 //Global Variables
 int nPlayers;
@@ -38,7 +55,7 @@ GAMEDATA *pGameDataShared = NULL;
 //Function prototype
 DWORD WINAPI ServerInput();
 PLAYERS RecieveRequest();
-BOOL HandleAction(PLAYERS pAction);
+BOOL HandleAction(PLAYERS pAction, HANDLE pipeConection);
 PLAYERS AddPlayerToArray(PLAYERS *pAction);
 BOOL RemovePlayerFromArray(PLAYERS *pPlayers);
 int getPlayerId(int pid);
@@ -56,18 +73,13 @@ int * ballIdArray(int* threadId, int* tam);
 BALL* CreateBallArray(BALL* ball, int* tam);
 BOOL AddBall();
 BOOL RemoveBall();
-BOOL ConnectToNewClient(HANDLE hPipe, LPOVERLAPPED lpo);
+DWORD WINAPI PipeRoutine();
 
-typedef struct
-{
-	OVERLAPPED oOverlap;
-	HANDLE hPipeInst;
-	PLAYERS player;
-	DWORD cbRead;
-	PLAYERS playerReply;
-	DWORD cbToWrite;
-	DWORD dwState;
-	BOOL fPendingIO;
-} PIPEINST, * LPPIPEINST;
+DWORD WINAPI ServerInputPipes(LPVOID param);
+PLAYERS ReceiveRequestFromPipeConnection(HANDLE Pipe);
+BOOL SendAnswerToClientPipe(PLAYERS *pAction, HANDLE pipe);
+
+DWORD WINAPI PipeBroadcast();
+BOOL SendBroadcastPipe(BALL *balls);
 
 //PLAYERS ShowTop10(PLAYERS* pAction);

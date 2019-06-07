@@ -19,10 +19,12 @@ HANDLE mutex_1, mutex_2;
 //PIPES
 HANDLE hPipe = NULL;
 HANDLE hThread;
+OVERLAPPED overlapped_structure;
+HANDLE hBroad;
 
 //PIPE_NAME
-wchar_t PIPE_SEND_SERVER_NAME[100];
-wchar_t PIPE_RECEIVE_SERVER_NAME[100];
+wchar_t PIPE_SERVER_NAME[100];
+wchar_t PIPE_SERVER_NAME_DATA[100];
 
 BOOL InitPipes(TCHAR* ipAdress);
 BOOL InitSharedMem();
@@ -44,6 +46,21 @@ GAMEDATA RecieveBroadcast(GAMEDATA* pGame)
 
 	ReleaseMutex(mutex_2);
 	ReleaseSemaphore(hCanWriteBroad, 1, NULL);
+
+	return *pGame;
+}
+
+GAMEDATAPIPE RecieveBroadcastPipe(GAMEDATAPIPE* pGame, TCHAR* ipAdress) {
+
+	//DWORD dwBytesRead;
+	//BOOL readSuccess = FALSE;
+
+	/*readSuccess = ReadFile(hPipe, pGame, sizeof(GAMEDATAPIPE), &dwBytesRead, NULL);
+
+	if (readSuccess == FALSE) {
+		_tprintf(TEXT("(ReadFile) Error while reading pipe! GLE: %d\n"), GetLastError());
+		return *pGame;
+	}*/
 
 	return *pGame;
 }
@@ -73,28 +90,15 @@ PLAYERS RecieveMessage(PLAYERS* client)
 
 PLAYERS RecieveMessage(PLAYERS* client, TCHAR* ipAdress)
 {
-	BOOL fSuccess;
-	DWORD numberOfReadBytes;
+	_tprintf(TEXT("ID: %d\n"), client->id);
 
-	_tprintf(TEXT("ID: %d IN: %d\n"), client->id, player.in);
+	DWORD dwBytesRead;
+	BOOL readSuccess = FALSE;
 
-	do
-	{
-		fSuccess = ReadFile(
-			hPipe,              // pipe handle
-			client,             // buffer to receive reply
-			sizeof(PLAYERS),    // size of buffer
-			&numberOfReadBytes, // number of bytes read
-			NULL);              // not overlapped
+	readSuccess = ReadFile(hPipe, client, sizeof(PLAYERS), &dwBytesRead, NULL);
 
-		if (!fSuccess && GetLastError() != ERROR_MORE_DATA)
-			break;
-
-	} while (!fSuccess); // repeat loop if ERROR_MORE_DATA
-
-	if (!fSuccess)
-	{
-		_tprintf(TEXT("ReadFile from pipe failed. GLE=%d\n"), GetLastError());
+	if (readSuccess == FALSE) {
+		_tprintf(TEXT("(ReadFile) Error while reading pipe! GLE: %d\n"), GetLastError());
 		return *client;
 	}
 
@@ -120,29 +124,18 @@ BOOL SendMessages(PLAYERS* client)
 	return true;
 }
 
-BOOL SendMessages(PLAYERS* client, TCHAR* ipAdress)
-{
-	DWORD cbToWrite, cbWritten;
-	BOOL fSuccess;
+BOOL SendMessages(PLAYERS* client, TCHAR* ipAdress){
+	DWORD dwBytesWritten;
+	BOOL writeSuccess = FALSE;
 
+	writeSuccess = WriteFile(hPipe, client, sizeof(PLAYERS), &dwBytesWritten, NULL);
 
-	cbToWrite = sizeof(PLAYERS);
-	//_tprintf(TEXT("Sending %d byte message: \"%s\"\n"), cbToWrite, lpvMessage);
-
-	fSuccess = WriteFile(
-		hPipe,                  // pipe handle 
-		client,             // message 
-		cbToWrite,              // message length 
-		&cbWritten,             // bytes written 
-		NULL);                  // not overlapped 
-
-	if (!fSuccess)
-	{
-		_tprintf(TEXT("WriteFile to pipe failed. GLE=%d\n"), GetLastError());
-		return -1;
+	if (writeSuccess == FALSE) {
+		_tprintf(TEXT("(WriteFile) Error while writting to pipe! GLE: %d\n"), GetLastError());
+		return TRUE;
 	}
 
-	return true;
+	return FALSE;
 }
 
 BOOL Login(PLAYERS* client)
@@ -158,18 +151,20 @@ BOOL Login(PLAYERS* client, TCHAR* ipAdress)
 {
 
 	_tprintf(TEXT("IP Recebido: %s\n"), ipAdress);
-	InitPipes(ipAdress);
-	SendMessages(client, ipAdress);
+	if (InitPipes(ipAdress) == FALSE)
+		SendMessages(client, ipAdress);
+	else {
+		_tprintf(TEXT("Failed to connect!\n"));
+		return TRUE;
+	}
 
-	return TRUE;
+	return FALSE;
 }
 
 void CloseVars()
 {
 	UnmapViewOfFile(pSharedGame);
 	UnmapViewOfFile(pShared);
-	//CloseHandle(mutex_1);
-	//CloseHandle(mutex_2);
 	CloseHandle(hCanRead);
 	CloseHandle(hCanWrite);
 	CloseHandle(hMem);
@@ -179,55 +174,31 @@ void CloseVars()
 BOOL InitPipes(TCHAR* ipAdress)
 {
 
-	DWORD dwMode;
-	BOOL fSuccess;
+	swprintf(PIPE_SERVER_NAME, 100, TEXT("\\\\%s\\pipe\\arkanoid"), (wchar_t*)ipAdress);
+	_tprintf(TEXT("%s\n"), PIPE_SERVER_NAME);
+	
+	//swprintf(PIPE_SERVER_NAME_DATA, 100, TEXT("\\\\%s\\pipe\\arkanoidDATA"), (wchar_t*)ipAdress);
+	//_tprintf(TEXT("%s\n"), PIPE_SERVER_NAME_DATA);
 
-	swprintf(PIPE_SEND_SERVER_NAME, 100, TEXT("\\\\%s\\Arkanoid\\pipe"), (wchar_t*)ipAdress);
-	_tprintf(TEXT("%s\n"), PIPE_SEND_SERVER_NAME);
-
-	hPipe = CreateFile(
-		PIPE_SEND_SERVER_NAME, // pipe name
-		GENERIC_READ |         // read and write access
-		GENERIC_WRITE,
-		0,             // no sharing
-		NULL,          // default security attributes
-		OPEN_EXISTING, // opens existing pipe
-		0,             // default attributes
-		NULL);         // no template file
-
-	// Break if the pipe handle is valid.
-
-	if (hPipe != INVALID_HANDLE_VALUE)
-		return TRUE;
-
-	// Exit if an error other than ERROR_PIPE_BUSY occurs.
-
-	if (GetLastError() != ERROR_PIPE_BUSY)
-	{
-		_tprintf(TEXT("Could not open pipe. GLE=%d\n"), GetLastError());
+	hPipe = CreateFile(PIPE_SERVER_NAME, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	
+	
+	if (hPipe == INVALID_HANDLE_VALUE) {
+		_tprintf(TEXT("[ERRO] Ligar ao pipe '%s'! (CreateFile) GLE: %d\n"), PIPE_SERVER_NAME, GetLastError());
 		return TRUE;
 	}
 
-	// All pipe instances are busy, so wait for 20 seconds.
-
-	if (!WaitNamedPipe(PIPE_SEND_SERVER_NAME, 20000))
-	{
-		printf("Could not open pipe: 20 second wait timed out.");
+	_tprintf(TEXT("Connect Success CLIENT!\n"));
+	
+/*	hBroad = CreateFile(PIPE_SERVER_NAME_DATA, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	
+	
+	if (hBroad == INVALID_HANDLE_VALUE) {
+		_tprintf(TEXT("[ERRO] Ligar ao pipe '%s'! (CreateFile) GLE: %d\n"), PIPE_SERVER_NAME_DATA, GetLastError());
 		return TRUE;
 	}
 
-	dwMode = PIPE_READMODE_MESSAGE;
-	fSuccess = SetNamedPipeHandleState(
-		hPipe,   // pipe handle
-		&dwMode, // new pipe mode
-		NULL,    // don't set maximum bytes
-		NULL);   // don't set maximum time
-	if (!fSuccess)
-	{
-		_tprintf(TEXT("SetNamedPipeHandleState failed. GLE=%d\n"), GetLastError());
-		return TRUE;
-	}
-
+	_tprintf(TEXT("Connect Success DATA!\n"));*/
 	return FALSE;
 }
 
@@ -243,7 +214,7 @@ BOOL InitSharedMem()
 	{
 		_tprintf(TEXT("Servidor não está ligado!\n"));
 		//CloseHandle(mutex_1);
-		return EXIT_FAILURE;
+		exit(EXIT_FAILURE);
 	}
 
 	mutex_2 = OpenMutex(MUTEX_ALL_ACCESS, 0, TEXT("Mutex_2"));

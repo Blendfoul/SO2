@@ -66,6 +66,11 @@ typedef struct
 	BALL ball[10][5];
 }GAMEDATA;
 
+typedef struct {
+	int nBalls;
+	BALL ball[5];
+}GAMEDATAPIPE;
+
 // TODO: reference additional headers your program requires here
 
 	MAPPEDDLL_IMP_API BOOL TesteDLL();
@@ -81,6 +86,7 @@ typedef struct
 	MAPPEDDLL_IMP_API BOOL SendMessages(PLAYERS* client, TCHAR* ipAdress);
 
 	MAPPEDDLL_IMP_API GAMEDATA RecieveBroadcast(GAMEDATA *pGame);
+	MAPPEDDLL_IMP_API GAMEDATAPIPE RecieveBroadcastPipe(GAMEDATAPIPE* pGame, TCHAR* ipAdress);
 
 	MAPPEDDLL_IMP_API void CloseVars();
 	MAPPEDDLL_IMP_API void DisconnectPipes();
