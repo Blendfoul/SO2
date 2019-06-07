@@ -16,6 +16,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <memory.h>
+#include <stdbool.h>
+#include <stdlib.h>
+
+#define PIPENAME TEXT("\\\\%s\\pipe\\teste")
 
 #define BufferSize 100
 #define BUFFERS 10
@@ -24,6 +28,7 @@
 #define USRINVALID 2
 #define LOGOUTSUCCESS 9
 #define SERVERCLOSE 8
+#define IPSIZE 15
 
 typedef struct {
 	TCHAR names[10][MAX];
@@ -35,6 +40,7 @@ typedef struct
     int id;
     int code;
     TCHAR username[MAX];
+	TCHAR ipAdress[IPSIZE];
 	TCHAR command[MAX];
     int pos;
     int score;
@@ -55,19 +61,32 @@ typedef struct
 
 typedef struct
 {
-	BALL ball;
-	int code;
+	int in, out;
+	int nBalls;
+	BALL ball[10][5];
 }GAMEDATA;
+
+typedef struct {
+	int nBalls;
+	BALL ball[5];
+}GAMEDATAPIPE;
 
 // TODO: reference additional headers your program requires here
 
 	MAPPEDDLL_IMP_API BOOL TesteDLL();
 
 	MAPPEDDLL_IMP_API BOOL Login(PLAYERS *client);
+	MAPPEDDLL_IMP_API BOOL Login(PLAYERS *client, TCHAR *ipAdress);
+
 
 	MAPPEDDLL_IMP_API PLAYERS RecieveMessage(PLAYERS * client);
+	MAPPEDDLL_IMP_API PLAYERS RecieveMessage(PLAYERS * client, TCHAR *ipAdress);
+
 	MAPPEDDLL_IMP_API BOOL SendMessages(PLAYERS * client);
+	MAPPEDDLL_IMP_API BOOL SendMessages(PLAYERS* client, TCHAR* ipAdress);
 
 	MAPPEDDLL_IMP_API GAMEDATA RecieveBroadcast(GAMEDATA *pGame);
+	MAPPEDDLL_IMP_API GAMEDATAPIPE RecieveBroadcastPipe(GAMEDATAPIPE* pGame, TCHAR* ipAdress);
 
 	MAPPEDDLL_IMP_API void CloseVars();
+	MAPPEDDLL_IMP_API void DisconnectPipes();

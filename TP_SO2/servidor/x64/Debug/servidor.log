@@ -1,4 +1,2 @@
-﻿  server.cpp
-c:\users\joao_\documents\so2\so2\tp_so2\servidor\server.cpp(139): warning C4474: 'wprintf_s' : too many arguments passed for format string
-  c:\users\joao_\documents\so2\so2\tp_so2\servidor\server.cpp(139): note: placeholders and their parameters expect 0 variadic arguments, but 1 were provided
+﻿  server.c
   servidor.vcxproj -> C:\Users\joao_\Documents\SO2\SO2\TP_SO2\servidor\x64\Debug\servidor.exe
